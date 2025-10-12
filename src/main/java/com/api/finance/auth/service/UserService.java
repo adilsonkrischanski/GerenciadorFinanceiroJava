@@ -6,6 +6,7 @@ import com.api.finance.auth.dto.ReveryPasswordDTO;
 import com.api.finance.auth.repositories.UserRepository;
 import com.api.finance.auth.service.security.TokenService;
 import com.api.finance.core.services.system.EmailService;
+import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -48,6 +49,9 @@ public class UserService {
     public Optional<UserEntity> findByEmail(String username) {
         return userRepository.findByEmail(username);
     }
+    public Optional<UserEntity> findById(UUID id) {
+        return userRepository.findById(id);
+    }
 
     public String verify(LoginDTO userLoginData) {
         Authentication authUser = new UsernamePasswordAuthenticationToken(userLoginData.email(), userLoginData.password());
@@ -62,6 +66,34 @@ public class UserService {
         }
 
         return null;
+    }
+
+    public Boolean verificaSeGerente(String email){
+        return true;
+//        try {
+//            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
+//            if(userEntityOptional.isPresent()) {
+//                UserEntity user = userEntityOptional.get();
+//                return user.isGerente();
+//            }
+//            return false;
+//        }catch (Exception e){
+//            return false;
+//        }
+    }
+
+    public Boolean verificaSeAdministrador(String email){
+        return true;
+//        try {
+//            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
+//            if(userEntityOptional.isPresent()) {
+//                UserEntity user = userEntityOptional.get();
+//                return user.isAdministrator();
+//            }
+//            return false;
+//        }catch (Exception e){
+//            return false;
+//        }
     }
 
     public Boolean sendCodeResetPassword(String email){

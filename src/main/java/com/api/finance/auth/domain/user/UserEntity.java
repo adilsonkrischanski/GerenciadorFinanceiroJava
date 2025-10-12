@@ -27,7 +27,11 @@ public class UserEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    // 👤 Dados básicos
+
+    @Column(nullable = false)
+    private long empresacliente ;
+
+
     @Column(nullable = false, unique = true)
     private String username;
 
@@ -37,8 +41,11 @@ public class UserEntity implements Serializable {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "isAdministrator")
+    @Column(nullable = false)
     private boolean isAdministrator;
+
+    @Column(nullable = false)
+    private boolean isGerente;
 
 
     @Column(name = "registration_date")
