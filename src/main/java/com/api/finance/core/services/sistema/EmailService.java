@@ -1,4 +1,4 @@
-package com.api.finance.core.services.system;
+package com.api.finance.core.services.sistema;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

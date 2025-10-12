@@ -1,0 +1,52 @@
+package com.api.finance.core.services.tabela;
+
+import com.api.finance.core.domain.entity.ParcelaEntity;
+import com.api.finance.core.repositories.ParcelaRepository;
+import com.api.finance.core.utils.enums.StatusParcela;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ParcelaService {
+
+    @Autowired
+    private ParcelaRepository parcelaRepository;
+
+    /**
+     * Salva uma parcela no banco de dados.
+     */
+    public ParcelaEntity save(ParcelaEntity table) {
+        return parcelaRepository.save(table);
+    }
+
+    /**
+     * Busca todas as parcelas de um empréstimo.
+     */
+    public List<ParcelaEntity> buscarPorEmprestimo(Long emprestimoId) {
+        return parcelaRepository.findByEmprestimoId(emprestimoId);
+    }
+
+    /**
+     * Busca todas as parcelas pendentes.
+     */
+    public List<ParcelaEntity> buscarPendentes() {
+        return parcelaRepository.findByStatus(StatusParcela.PENDENTE.getCode());
+    }
+
+    /**
+     * Atualiza o status de uma parcela.
+     */
+    public ParcelaEntity atualizarStatus(Long id, StatusParcela novoStatus) {
+        ParcelaEntity parcela = parcelaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Parcela não encontrada com ID: " + id));
+        parcela.setStatus(novoStatus.getCode());
+        return parcelaRepository.save(parcela);
+    }
+
+    public boolean temParcelasPendentes(Long emprestimoId) {
+        return parcelaRepository.existsByEmprestimoIdAndStatus(emprestimoId, StatusParcela.PENDENTE.getCode());
+    }
+
+}

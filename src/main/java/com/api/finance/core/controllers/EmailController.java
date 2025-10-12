@@ -1,6 +1,6 @@
 package com.api.finance.core.controllers;
 
-import com.api.finance.core.services.system.EmailService;
+import com.api.finance.core.services.sistema.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;

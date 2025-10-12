@@ -20,6 +20,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/colaborador")
+@CrossOrigin("*")
 public class ColaboradorController {
 
     @Autowired
@@ -79,15 +80,5 @@ public class ColaboradorController {
         }
     }
 
-    private ResponseEntity<Map<String, String>> generateToken(LoginDTO body) {
-        String jwtToken = userService.verify(body);
-        Boolean gerente= userService.verificaSeGerente(body.email());
-        Boolean adm= userService.verificaSeAdministrador(body.email());
-        Map<String, String> response = new HashMap<>();
-        response.put("token", jwtToken);
-        response.put("gerente", gerente.toString());
-        response.put("adm", adm.toString());
-        return ResponseEntity.ok(response);
-    }
 
 }

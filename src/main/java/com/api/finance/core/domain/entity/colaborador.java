@@ -1,4 +1,4 @@
-package com.api.finance.core.domain.nodes;
+package com.api.finance.core.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
