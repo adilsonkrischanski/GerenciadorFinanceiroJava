@@ -1,14 +1,14 @@
 package com.api.finance.core.controllers;
 
+import com.api.finance.auth.domain.user.EmpresaClienteSequence;
 import com.api.finance.auth.domain.user.UserEntity;
 import com.api.finance.auth.domain.user.UserSecurity;
-import com.api.finance.auth.dto.LoginDTO;
 import com.api.finance.auth.dto.RegisterDTO;
 import com.api.finance.auth.service.UserService;
+import com.api.finance.core.repositories.EmpresaClienteSequenceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,9 +17,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/colaborador")
+@RequestMapping("/cliente")
 @CrossOrigin("*")
-public class ColaboradorController {
+public class ClienteController {
 
     @Autowired
     UserService userService;
@@ -27,15 +27,10 @@ public class ColaboradorController {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    @GetMapping("/test-integracao")
-    public ResponseEntity<Map<String, UUID>> testIntegration(@AuthenticationPrincipal UserSecurity userSecurity) {
-        if (userSecurity == null) {
-            return null; // ou ResponseEntity.status(401).build()
-        }
-        Map<String, UUID> response = new HashMap<>();
-        response.put("result", userSecurity.getUser());
-        return ResponseEntity.ok(response);
-    }
+    @Autowired
+    EmpresaClienteSequenceRepository empresaClienteSequence;
+
+
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@AuthenticationPrincipal UserSecurity userSecurity,
@@ -66,7 +61,9 @@ public class ColaboradorController {
             newUser.setGerente(body.isGerente());
             newUser.setAdministrator(body.isAdministrator());
             newUser.setRegistrationDate(LocalDateTime.now());
-            newUser.setEmpresacliente(userGestor.getEmpresacliente());
+            EmpresaClienteSequence seq = empresaClienteSequence.save(new EmpresaClienteSequence());
+            newUser.setEmpresacliente(seq.getId());
+
             newUser.setActive(true);
             newUser.setDeactivationDate(null);
             userService.save(newUser);

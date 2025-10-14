@@ -1,10 +1,12 @@
 package com.api.finance.auth.service;
 
+import com.api.finance.auth.domain.user.EmpresaClienteSequence;
 import com.api.finance.auth.domain.user.UserEntity;
 import com.api.finance.auth.dto.LoginDTO;
 import com.api.finance.auth.dto.ReveryPasswordDTO;
 import com.api.finance.auth.repositories.UserRepository;
 import com.api.finance.auth.service.security.TokenService;
+import com.api.finance.core.repositories.EmpresaClienteSequenceRepository;
 import com.api.finance.core.services.sistema.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,8 +36,18 @@ public class UserService {
     @Autowired
     PasswordEncoder passwordEncoder;
 
+    @Autowired
+    EmpresaClienteSequenceRepository empresaClienteSequenceRepository;
+
     public UserEntity save(UserEntity user) {
+        if (user.getEmpresacliente() == 0) {
+            // Cria um novo registro na tabela de sequência
+            EmpresaClienteSequence seq = empresaClienteSequenceRepository.save(new EmpresaClienteSequence());
+            user.setEmpresacliente(seq.getId());
+        }
+
         return userRepository.save(user);
+
     }
 
     public void deleteById(UUID id) {
@@ -131,5 +144,9 @@ public class UserService {
         }catch (Exception e){
             return false;
         }
+    }
+
+    public List<UserEntity> findAllByEmpresa(long empresacliente) {
+        return userRepository.findAllByEmpresacliente(empresacliente);
     }
 }
