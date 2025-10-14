@@ -25,5 +25,6 @@ public class EmprestimoDTO {
     private Integer tipoCobranca;
     private Long usuarioId;
     private LocalDate dataFechamento;
+    private BigDecimal valorResidual;
 
 }

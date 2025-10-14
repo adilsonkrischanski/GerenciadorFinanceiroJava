@@ -1,5 +1,7 @@
 package com.api.finance.core.services.sistema;
 
+import com.api.finance.core.utils.enums.TipoCobranca;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -54,5 +56,29 @@ public class Data {
 
     public LocalDate toLocalDate() {
         return data;
+    }
+
+    public static String gerarDataVencimento(Data data, int numeroParcela, TipoCobranca tipoCobranca) {
+        // Criamos uma cópia da data inicial para não modificar o objeto original
+        Data novaData = new Data(data.toString());
+
+        switch (tipoCobranca) {
+            case SEMANAL:
+                novaData.somarDias(7 * (numeroParcela - 1));
+                break;
+
+            case QUINZENAL:
+                novaData.somarDias(14 * (numeroParcela - 1));
+                break;
+
+            case MENSAL:
+                novaData.somarMeses(numeroParcela - 1);
+                break;
+
+            default:
+                throw new IllegalArgumentException("Tipo de cobrança inválido: " + tipoCobranca);
+        }
+
+        return novaData.toString();
     }
 }

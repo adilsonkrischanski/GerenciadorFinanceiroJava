@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/emprestimo")
@@ -76,8 +77,12 @@ public class EmprestimoController {
 
         UserEntity userGestor = userGestorOptional.get();
         List<EmprestimoEntity> emprestimos = emprestimoService.listarEmprestimosCorrentes(userGestor);
+        List<EmprestimoEntity> ordenados = emprestimos.stream()
+                .sorted(Comparator.comparing(EmprestimoEntity::getId))
+                .toList();
 
-        return ResponseEntity.ok(emprestimos);
+
+        return ResponseEntity.ok(ordenados);
     }
 
 

@@ -1,11 +1,16 @@
 package com.api.finance.core.services.tabela;
 
+import com.api.finance.auth.domain.user.UserEntity;
 import com.api.finance.core.domain.entity.ParcelaEntity;
+import com.api.finance.core.dto.ParcelaDTO;
 import com.api.finance.core.repositories.ParcelaRepository;
+import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.utils.enums.StatusParcela;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -48,5 +53,23 @@ public class ParcelaService {
     public boolean temParcelasPendentes(Long emprestimoId) {
         return parcelaRepository.existsByEmprestimoIdAndStatus(emprestimoId, StatusParcela.PENDENTE.getCode());
     }
+
+    public List<ParcelaEntity> buscarPorEmprestimoId(Long emprestimoId) {
+        return parcelaRepository.findByEmprestimoId(emprestimoId);
+    }
+
+    public ParcelaEntity buscarPorId(Long id) {
+        return parcelaRepository.findById(id).orElse(null);
+    }
+
+
+    public List<ParcelaEntity> findByEmprestimoId(Long emprestimoId) {
+        return parcelaRepository.findByEmprestimoId(emprestimoId);
+    }
+
+    public ParcelaEntity findById(Long id) {
+        return parcelaRepository.findById(id).orElse(null);
+    }
+
 
 }
