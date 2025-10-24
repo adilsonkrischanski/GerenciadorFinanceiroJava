@@ -137,29 +137,29 @@
                         </configuration>
                     </execution>
 
-                    <!-- Instalar dependências do Angular -->
-                    <execution>
-                        <id>npm install</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>install</arguments>
-                            <workingDirectory>../../front/finaceiro</workingDirectory>
-                        </configuration>
-                    </execution>
+<!--                    &lt;!&ndash; Instalar dependências do Angular &ndash;&gt;-->
+<!--                    <execution>-->
+<!--                        <id>npm install</id>-->
+<!--                        <goals>-->
+<!--                            <goal>npm</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <arguments>install</arguments>-->
+<!--                            <workingDirectory>../../front/finaceiro</workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
 
-                    <!-- Build Angular -->
-                    <execution>
-                        <id>npm build</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>run build -- --configuration production --output-path=../../java/finaceiro/GerenciadorFinanceiroJava/src/main/resources/static</arguments>
-                            <workingDirectory>../../finaceiro</workingDirectory>
-                        </configuration>
-                    </execution>
+<!--                    &lt;!&ndash; Build Angular &ndash;&gt;-->
+<!--                    <execution>-->
+<!--                        <id>npm build</id>-->
+<!--                        <goals>-->
+<!--                            <goal>npm</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <arguments>run build &#45;&#45; &#45;&#45;configuration production &#45;&#45;output-path=../../java/financeiro/GerenciadorFinanceiroJava/src/main/resources/static</arguments>-->
+<!--                            <workingDirectory>../../financeiro</workingDirectory>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
 		</plugins>

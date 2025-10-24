@@ -20,7 +20,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/parcela")
-@CrossOrigin("*")
 public class ParcelaController {
 
     @Autowired

@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/colaborador")
-@CrossOrigin("*")
 public class ColaboradorController {
 
     @Autowired

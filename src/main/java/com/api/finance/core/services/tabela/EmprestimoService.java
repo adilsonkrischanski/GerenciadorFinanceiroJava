@@ -33,4 +33,6 @@ public class EmprestimoService {
     public List<EmprestimoEntity> findByEmpresaId(Long empresaId) {
         return emprestimoRepository.findByEmpresaId(empresaId);
     }
+
+
 }

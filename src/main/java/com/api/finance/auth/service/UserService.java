@@ -81,31 +81,30 @@ public class UserService {
     }
 
     public Boolean verificaSeGerente(String email){
-        return true;
-//        try {
-//            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
-//            if(userEntityOptional.isPresent()) {
-//                UserEntity user = userEntityOptional.get();
-//                return user.isGerente();
-//            }
-//            return false;
-//        }catch (Exception e){
-//            return false;
-//        }
+
+        try {
+            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
+            if(userEntityOptional.isPresent()) {
+                UserEntity user = userEntityOptional.get();
+                return user.isGerente();
+            }
+            return false;
+        }catch (Exception e){
+            return false;
+        }
     }
 
     public Boolean verificaSeAdministrador(String email){
-        return true;
-//        try {
-//            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
-//            if(userEntityOptional.isPresent()) {
-//                UserEntity user = userEntityOptional.get();
-//                return user.isAdministrator();
-//            }
-//            return false;
-//        }catch (Exception e){
-//            return false;
-//        }
+        try {
+            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
+            if(userEntityOptional.isPresent()) {
+                UserEntity user = userEntityOptional.get();
+                return user.isAdministrator();
+            }
+            return false;
+        }catch (Exception e){
+            return false;
+        }
     }
 
     public Boolean sendCodeResetPassword(String email){

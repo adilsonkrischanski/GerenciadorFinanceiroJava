@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/emprestimo")
-@CrossOrigin("*")
 public class EmprestimoController {
 
     @Autowired
@@ -63,7 +62,7 @@ public class EmprestimoController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<List<EmprestimoEntity>> listarEmprestimos(
+    public ResponseEntity<List<EmprestimoDTO>> listarEmprestimos(
             @AuthenticationPrincipal UserSecurity userSecurity) {
 
         if (userSecurity == null) {
@@ -76,14 +75,11 @@ public class EmprestimoController {
         }
 
         UserEntity userGestor = userGestorOptional.get();
-        List<EmprestimoEntity> emprestimos = emprestimoService.listarEmprestimosCorrentes(userGestor);
-        List<EmprestimoEntity> ordenados = emprestimos.stream()
-                .sorted(Comparator.comparing(EmprestimoEntity::getId))
-                .toList();
+        List<EmprestimoDTO> emprestimos = emprestimoService.listarEmprestimosCorrentesDTO(userGestor);
 
-
-        return ResponseEntity.ok(ordenados);
+        return ResponseEntity.ok(emprestimos);
     }
+
 
 
 

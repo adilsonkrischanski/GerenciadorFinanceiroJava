@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,7 +79,7 @@ public class ParcelasService {
 
         // Verifica se o total pago + desconto cobre o valor da parcela original
         BigDecimal valorTotalPago = valorPago.add(desconto);
-        if (valorTotalPago.compareTo(parcela.getValorDesconto()) >= 0) {
+        if (parcela.getValorOriginal().compareTo(valorTotalPago) <= 0) {
             parcela.setStatus(StatusParcela.PAGA.getCode());
         } else {
             parcela.setStatus(StatusParcela.PENDENTE.getCode());
@@ -151,5 +153,92 @@ public class ParcelasService {
         return null;
     }
 
+    public BigDecimal calculaValorResidual(EmprestimoEntity emprestimo) {
+
+        // Busca todas as parcelas vinculadas ao empréstimo
+        List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimo.getId());
+        if (emprestimo.getTipoEmprestimo() == TipoEmprestimo.ESPECIAL.getCode()) {
+            return  saldoDevedor(emprestimo,parcelas);
+        }
+        else {
+            BigDecimal falta = BigDecimal.ZERO;
+            for (ParcelaEntity parcela : parcelas) {
+                if (parcela.getStatus() == StatusParcela.PAGA.getCode()) {
+                    continue;
+                }
+                falta = falta.add(parcela.getValorOriginal());
+            }
+            return   falta;
+        }
+    }
+
+
+    // ------------------- Total pago no dia -------------------
+    public BigDecimal getTotalPagoNoDia(LocalDate hoje) {
+        String dataStr = hoje.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        return parcelaService.findByStatus(StatusParcela.PAGA.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // ------------------- Previsão da semana -------------------
+    public BigDecimal getPrevisaoSemana(LocalDate hoje) {
+        LocalDate semanaFinal = hoje.plusDays(7);
+        return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> {
+                    LocalDate vencimento = LocalDate.parse(p.getVencimento());
+                    return !vencimento.isBefore(hoje) && !vencimento.isAfter(semanaFinal);
+                })
+                .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // ------------------- Quantidade de contratos ativos -------------------
+    public long getContratosAtivosCount(Long idEmpresa) {
+        // Considera ativo se tem parcelas pendentes
+        List<EmprestimoEntity> emprestimos = emprestimosService.findByEmpresaId(idEmpresa);
+        return emprestimos.stream()
+                .filter(e -> parcelaService.temParcelasPendentes(e.getId()))
+                .count();
+    }
+
+    // ------------------- Contratos com parcelas vencidas -------------------
+    public long getParcelasVencidasCount(LocalDate hoje) {
+        return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> LocalDate.parse(p.getVencimento()).isBefore(hoje))
+                .map(ParcelaEntity::getEmprestimoId)
+                .distinct()
+                .count();
+    }
+
+    // ------------------- Faturamento previsto para 7 dias -------------------
+    public BigDecimal getFaturamento7Dias(LocalDate hoje) {
+        LocalDate semanaFinal = hoje.plusDays(7);
+        return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> {
+                    LocalDate vencimento = LocalDate.parse(p.getVencimento());
+                    return !vencimento.isBefore(hoje) && !vencimento.isAfter(semanaFinal);
+                })
+                .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getPrevisaoRecebimento(LocalDate hoje, int dias) {
+        LocalDate limite = hoje.plusDays(dias);
+        return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> {
+                    LocalDate vencimento = LocalDate.parse(p.getVencimento());
+                    return !vencimento.isBefore(hoje) && !vencimento.isAfter(limite);
+                })
+                .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
 }
+

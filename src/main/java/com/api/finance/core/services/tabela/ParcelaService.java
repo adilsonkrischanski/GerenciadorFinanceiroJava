@@ -6,6 +6,7 @@ import com.api.finance.core.dto.ParcelaDTO;
 import com.api.finance.core.repositories.ParcelaRepository;
 import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.utils.enums.StatusParcela;
+import com.api.finance.core.utils.enums.TipoEmprestimo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,9 +51,6 @@ public class ParcelaService {
         return parcelaRepository.save(parcela);
     }
 
-    public boolean temParcelasPendentes(Long emprestimoId) {
-        return parcelaRepository.existsByEmprestimoIdAndStatus(emprestimoId, StatusParcela.PENDENTE.getCode());
-    }
 
     public List<ParcelaEntity> buscarPorEmprestimoId(Long emprestimoId) {
         return parcelaRepository.findByEmprestimoId(emprestimoId);
@@ -71,5 +69,11 @@ public class ParcelaService {
         return parcelaRepository.findById(id).orElse(null);
     }
 
+    public boolean temParcelasPendentes(Long emprestimoId) {
+        return parcelaRepository.existsByEmprestimoIdAndStatus(emprestimoId, StatusParcela.PENDENTE.getCode());
+    }
+    public List<ParcelaEntity> findByStatus(int status) {
+        return parcelaRepository.findByStatus(status);
+    }
 
 }

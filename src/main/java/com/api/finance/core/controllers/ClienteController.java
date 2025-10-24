@@ -15,10 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/cliente")
-@CrossOrigin("*")
 public class ClienteController {
 
     @Autowired

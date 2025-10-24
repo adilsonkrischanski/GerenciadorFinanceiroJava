@@ -13,7 +13,6 @@ public class EmailController {
     @Autowired
     private EmailService emailService;
 
-    @CrossOrigin("*")
     @GetMapping("/send-mail")
     public String send(
             @RequestParam String to,
