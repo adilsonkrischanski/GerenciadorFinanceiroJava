@@ -5,16 +5,20 @@ import com.api.finance.auth.domain.user.UserSecurity;
 import com.api.finance.auth.service.UserService;
 
 import com.api.finance.core.domain.entity.EmprestimoEntity;
+import com.api.finance.core.domain.entity.ParcelaEntity;
 import com.api.finance.core.dto.EmprestimoDTO;
 
 
 import com.api.finance.core.services.programa.EmprestimosService;
+import com.api.finance.core.services.programa.ParcelasService;
+import com.api.finance.core.utils.enums.StatusParcela;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,6 +34,9 @@ public class EmprestimoController {
 
     @Autowired
     EmprestimosService emprestimoService;
+
+    @Autowired
+    ParcelasService parcelaService;
 
     @GetMapping("/test-integracao")
     public ResponseEntity<Map<String, UUID>> testIntegration(@AuthenticationPrincipal UserSecurity userSecurity) {
@@ -63,7 +70,8 @@ public class EmprestimoController {
 
     @GetMapping("/list")
     public ResponseEntity<List<EmprestimoDTO>> listarEmprestimos(
-            @AuthenticationPrincipal UserSecurity userSecurity) {
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @RequestParam(value = "status", required = false, defaultValue = "aberto") String status) {
 
         if (userSecurity == null) {
             return ResponseEntity.status(401).build();
@@ -75,10 +83,28 @@ public class EmprestimoController {
         }
 
         UserEntity userGestor = userGestorOptional.get();
-        List<EmprestimoDTO> emprestimos = emprestimoService.listarEmprestimosCorrentesDTO(userGestor);
+        List<EmprestimoDTO> emprestimos;
+
+        switch (status.toLowerCase()) {
+            case "fechado":
+                emprestimos = emprestimoService.listarEmprestimosFechadosDTO(userGestor);
+                break;
+            case "vencido":
+                emprestimos = emprestimoService.listarEmprestimosComParcelasVencidasDTO(userGestor);
+                break;
+            default:
+                emprestimos = emprestimoService.listarEmprestimosCorrentesDTO(userGestor);
+                break;
+        }
 
         return ResponseEntity.ok(emprestimos);
     }
+
+
+
+
+
+
 
 
 

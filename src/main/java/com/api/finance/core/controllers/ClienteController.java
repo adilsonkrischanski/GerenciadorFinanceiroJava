@@ -44,9 +44,7 @@ public class ClienteController {
             throw new Exception("Voce precisar estar logado como administrador para cadastrar um funcionario");
         }
         UserEntity userGestor = userGestorOptional.get();
-        if (!userGestor.isGerente()) {
-            throw new Exception("Voce precisar estar logado como administrador para cadastrar um funcionario");
-        }
+
 
         Optional<UserEntity> userEntity = userService.findByEmail(body.email());
 

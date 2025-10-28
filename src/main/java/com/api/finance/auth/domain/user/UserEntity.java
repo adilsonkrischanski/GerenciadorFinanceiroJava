@@ -32,7 +32,7 @@ public class UserEntity implements Serializable {
     private long empresacliente ;
 
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String username;
 
     @Column(nullable = false)

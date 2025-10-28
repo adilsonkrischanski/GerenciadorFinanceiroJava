@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -147,6 +148,41 @@ public class EmprestimosService {
 
         return todosEmprestimos.stream()
                 .filter(e -> parcelaService.temParcelasPendentes(e.getId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<EmprestimoDTO> listarEmprestimosFechadosDTO(UserEntity userGestor) {
+        // Obtém todos os empréstimos da empresa do gestor
+        List<EmprestimoEntity> todosEmprestimos =
+                emprestimoTabelaService.findByEmpresaId(userGestor.getEmpresacliente());
+
+        // Filtra apenas os empréstimos sem parcelas pendentes (fechados)
+        List<EmprestimoEntity> emprestimosFechados = todosEmprestimos.stream()
+                .filter(e -> !parcelaService.temParcelasPendentes(e.getId()))
+                .collect(Collectors.toList());
+
+        // Converte para DTO (usando o mesmo método utilizado nos correntes)
+        return emprestimosFechados.stream()
+                .sorted(Comparator.comparing(EmprestimoEntity::getId))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    public List<EmprestimoDTO> listarEmprestimosComParcelasVencidasDTO(UserEntity userGestor) {
+        LocalDate hoje = LocalDate.now();
+
+        // Obtém os IDs dos empréstimos que têm parcelas vencidas
+        Set<Long> emprestimosVencidosIds = parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> LocalDate.parse(p.getVencimento()).isBefore(hoje))
+                .map(ParcelaEntity::getEmprestimoId)
+                .collect(Collectors.toSet());
+
+        // Filtra apenas os empréstimos correntes do gestor que possuem parcelas vencidas
+        return listarEmprestimosCorrentesDTO(userGestor)
+                .stream()
+                .filter(e -> emprestimosVencidosIds.contains(e.getId()))
                 .collect(Collectors.toList());
     }
 

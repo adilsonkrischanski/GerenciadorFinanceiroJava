@@ -173,32 +173,35 @@ public class ParcelasService {
     }
 
 
-    // ------------------- Total pago no dia -------------------
-    public BigDecimal getTotalPagoNoDia(LocalDate hoje) {
+    // ------------------- Total pago hoje -------------------
+    public BigDecimal getTotalPagoNoDia(LocalDate hoje, Long idEmpresa) {
         String dataStr = hoje.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
         return parcelaService.findByStatus(StatusParcela.PAGA.getCode())
                 .stream()
                 .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
                 .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // ------------------- Previsão da semana -------------------
-    public BigDecimal getPrevisaoSemana(LocalDate hoje) {
+    public BigDecimal getPrevisaoSemana(LocalDate hoje, Long idEmpresa) {
         LocalDate semanaFinal = hoje.plusDays(7);
+
         return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
                 .stream()
                 .filter(p -> {
                     LocalDate vencimento = LocalDate.parse(p.getVencimento());
                     return !vencimento.isBefore(hoje) && !vencimento.isAfter(semanaFinal);
                 })
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
                 .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // ------------------- Quantidade de contratos ativos -------------------
     public long getContratosAtivosCount(Long idEmpresa) {
-        // Considera ativo se tem parcelas pendentes
         List<EmprestimoEntity> emprestimos = emprestimosService.findByEmpresaId(idEmpresa);
         return emprestimos.stream()
                 .filter(e -> parcelaService.temParcelasPendentes(e.getId()))
@@ -206,38 +209,35 @@ public class ParcelasService {
     }
 
     // ------------------- Contratos com parcelas vencidas -------------------
-    public long getParcelasVencidasCount(LocalDate hoje) {
+    public long getParcelasVencidasCount(LocalDate hoje, Long idEmpresa) {
         return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
                 .stream()
                 .filter(p -> LocalDate.parse(p.getVencimento()).isBefore(hoje))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
                 .map(ParcelaEntity::getEmprestimoId)
                 .distinct()
                 .count();
     }
 
     // ------------------- Faturamento previsto para 7 dias -------------------
-    public BigDecimal getFaturamento7Dias(LocalDate hoje) {
+    public BigDecimal getFaturamento7Dias(LocalDate hoje, Long idEmpresa) {
         LocalDate semanaFinal = hoje.plusDays(7);
+
         return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
                 .stream()
                 .filter(p -> {
                     LocalDate vencimento = LocalDate.parse(p.getVencimento());
                     return !vencimento.isBefore(hoje) && !vencimento.isAfter(semanaFinal);
                 })
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
                 .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public BigDecimal getPrevisaoRecebimento(LocalDate hoje, int dias) {
-        LocalDate limite = hoje.plusDays(dias);
-        return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
-                .stream()
-                .filter(p -> {
-                    LocalDate vencimento = LocalDate.parse(p.getVencimento());
-                    return !vencimento.isBefore(hoje) && !vencimento.isAfter(limite);
-                })
-                .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    // ------------------- Método auxiliar para filtrar parcelas por empresa -------------------
+    private boolean pertenceEmpresa(ParcelaEntity parcela, Long idEmpresa) {
+        Optional<EmprestimoEntity> emprestimo = emprestimosService.findById(parcela.getEmprestimoId());
+        return emprestimo.isPresent() && emprestimo.get().getEmpresaId().equals(idEmpresa);
     }
 
 }
