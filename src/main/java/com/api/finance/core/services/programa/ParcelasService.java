@@ -58,44 +58,52 @@ public class ParcelasService {
     }
 
     public boolean confirmarPagamento(UserEntity user, ParcelaDTO dto) throws Exception {
-        // Busca a parcela no banco
+        // Busca a parcela
         ParcelaEntity parcela = parcelaService.findById(dto.getId());
+        if (parcela == null) {
+            throw new IllegalArgumentException("Parcela não encontrada.");
+        }
 
-        // Validação: parcela inexistente ou já paga
-        if (parcela == null || parcela.getStatus() == StatusParcela.PAGA.getCode()) {
+        // Verifica se já foi paga
+        if (parcela.getStatus() == StatusParcela.PAGA.getCode()) {
             return false;
         }
 
-        // Atualiza informações básicas
+        // Define data e usuário
         parcela.setDataPagamento(new Data().toString());
         parcela.setUsuarioUuid(user.getId());
 
-        // Define valores monetários
-        BigDecimal desconto = dto.getValorDesconto() != null ? dto.getValorDesconto() : BigDecimal.ZERO;
+        // Valores monetários com null-safe
+        BigDecimal desconto = dto.getValorDesconto().add(parcela.getValorDesconto()) != null ? dto.getValorDesconto() : BigDecimal.ZERO;
         BigDecimal valorPago = dto.getValorPago() != null ? dto.getValorPago() : BigDecimal.ZERO;
+        valorPago = valorPago.add(parcela.getValorPago());
 
+        // Soma o total do pagamento + desconto
+        BigDecimal totalPago = valorPago.add(desconto);
+
+        // Atualiza valores na parcela
         parcela.setValorDesconto(desconto);
-        parcela.setValorPago(valorPago);
+        parcela.setValorPago(valorPago); // valor pago nesta transação
 
-        // Verifica se o total pago + desconto cobre o valor da parcela original
-        BigDecimal valorTotalPago = valorPago.add(desconto);
-        if (parcela.getValorOriginal().compareTo(valorTotalPago) <= 0) {
+        // Verifica se o valor pago cobre a parcela
+        if (parcela.getValorOriginal().compareTo(totalPago) <= 0) {
             parcela.setStatus(StatusParcela.PAGA.getCode());
         } else {
             parcela.setStatus(StatusParcela.PENDENTE.getCode());
         }
 
-        // Persiste a atualização no banco
+        // Salva atualização
         parcelaService.save(parcela);
 
+        // Gera nova parcela se aplicável
         EmprestimoEntity emprestimo = buscarEmprestimo(parcela);
-        if (emprestimo != null) {
+        if (emprestimo != null && parcela.getStatus() == StatusParcela.PAGA.getCode()) {
             gerarNovaParcela(user, emprestimo);
         }
 
-
         return true;
     }
+
 
 
     private void gerarNovaParcela(UserEntity user, EmprestimoEntity emprestimo) {
@@ -106,7 +114,7 @@ public class ParcelasService {
             emprestimosService.save(emprestimo);
             return;
         }
-        BigDecimal parcelaAtual = CalculadoraJuros.calcularParcela(saldoDevedor, 1, emprestimo.getTaxaJuros(), emprestimo.getTipoCobranca());
+        BigDecimal parcelaAtual = CalculadoraJuros.calcularParcela(saldoDevedor, 1, emprestimo.getTaxaJuros(), emprestimo.getTipoEmprestimo());
         novaParcelaEspecial(user, emprestimo, parcelaAtual, parcelaEntities.size() + 1);
 
 
@@ -187,18 +195,22 @@ public class ParcelasService {
 
     // ------------------- Previsão da semana -------------------
     public BigDecimal getPrevisaoSemana(LocalDate hoje, Long idEmpresa) {
-        LocalDate semanaFinal = hoje.plusDays(7);
+        Data dataHoje = new Data(hoje.toString());
+        Data dataFinalSemana = new Data(hoje.toString());
+        dataFinalSemana.somarSeteDias();
 
         return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
                 .stream()
-                .filter(p -> {
-                    LocalDate vencimento = LocalDate.parse(p.getVencimento());
-                    return !vencimento.isBefore(hoje) && !vencimento.isAfter(semanaFinal);
-                })
                 .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .filter(p -> {
+                    LocalDate vencimento = new Data(p.getVencimento()).toLocalDate();
+                    return !vencimento.isBefore(dataHoje.toLocalDate()) &&
+                            !vencimento.isAfter(dataFinalSemana.toLocalDate());
+                })
                 .map(p -> p.getValorOriginal() != null ? p.getValorOriginal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
 
     // ------------------- Quantidade de contratos ativos -------------------
     public long getContratosAtivosCount(Long idEmpresa) {
