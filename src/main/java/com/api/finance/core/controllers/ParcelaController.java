@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +106,45 @@ public class ParcelaController {
             return ResponseEntity.internalServerError().body(Map.of(
                     "status", "ERRO",
                     "mensagem", "Erro ao confirmar pagamento: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/adicional")
+    public ResponseEntity<Map<String, Object>> criarParcelaAdicional(
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @RequestBody Map<String, Object> payload) {
+
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Usuário não autenticado."
+            ));
+        }
+
+        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Usuário não encontrado"
+            ));
+        }
+
+        Long idEmprestimo = ((Number) payload.get("idEmprestimo")).longValue();
+        Double valorDouble = ((Number) payload.get("valor")).doubleValue();
+        BigDecimal valor = BigDecimal.valueOf(valorDouble);
+
+        try {
+            parcelaService.criarParcelaAdicional(userOpt.get(), idEmprestimo, valor);
+            return ResponseEntity.ok(Map.of(
+                    "status", "OK",
+                    "mensagem", "Parcela adicional criada com sucesso!"
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(400).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Erro ao criar parcela adicional: " + e.getMessage()
             ));
         }
     }

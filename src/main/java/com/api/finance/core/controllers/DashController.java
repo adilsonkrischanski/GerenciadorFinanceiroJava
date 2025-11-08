@@ -46,6 +46,28 @@ public class DashController {
         return ResponseEntity.ok(previsao);
     }
 
+    // ----------------- Previsão 15 dias -----------------
+    @GetMapping("/previsao-15-dias")
+    public ResponseEntity<BigDecimal> getPrevisao15Dias(@AuthenticationPrincipal UserSecurity userSecurity) {
+        Optional<UserEntity> userOpt = validarUser(userSecurity);
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
+
+        Long idEmpresa = userOpt.get().getEmpresacliente();
+        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,15);
+        return ResponseEntity.ok(previsao);
+    }
+
+    // ----------------- Previsão 30 dias -----------------
+    @GetMapping("/previsao-30-dias")
+    public ResponseEntity<BigDecimal> getPrevisao30Dias(@AuthenticationPrincipal UserSecurity userSecurity) {
+        Optional<UserEntity> userOpt = validarUser(userSecurity);
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
+
+        Long idEmpresa = userOpt.get().getEmpresacliente();
+        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,30);
+        return ResponseEntity.ok(previsao);
+    }
+
     // ----------------- Contratos ativos -----------------
     @GetMapping("/contratos-ativos")
     public ResponseEntity<Long> getContratosAtivos(@AuthenticationPrincipal UserSecurity userSecurity) {
@@ -68,15 +90,37 @@ public class DashController {
         return ResponseEntity.ok(totalVencidas);
     }
 
-    // ----------------- Faturamento previsto 7 dias -----------------
+    // ----------------- Faturamento previsto próximos 7 dias -----------------
     @GetMapping("/faturamento-7-dias")
     public ResponseEntity<BigDecimal> getFaturamento7Dias(@AuthenticationPrincipal UserSecurity userSecurity) {
         Optional<UserEntity> userOpt = validarUser(userSecurity);
         if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         Long idEmpresa = userOpt.get().getEmpresacliente();
-        BigDecimal faturamento = parcelasService.getFaturamento7Dias(LocalDate.now(), idEmpresa);
+        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,7);
         return ResponseEntity.ok(faturamento);
+    }
+
+    // ----------------- Faturamento últimos 7 dias -----------------
+    @GetMapping("/faturamento-7-dias-passados")
+    public ResponseEntity<BigDecimal> getFaturamento7DiasPassados(@AuthenticationPrincipal UserSecurity userSecurity) {
+        Optional<UserEntity> userOpt = validarUser(userSecurity);
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
+
+        Long idEmpresa = userOpt.get().getEmpresacliente();
+        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,7);
+        return ResponseEntity.ok(faturamento);
+    }
+
+    // ----------------- Total de dinheiro alocado -----------------
+    @GetMapping("/total-alocado")
+    public ResponseEntity<BigDecimal> getTotalAlocado(@AuthenticationPrincipal UserSecurity userSecurity) {
+        Optional<UserEntity> userOpt = validarUser(userSecurity);
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
+
+        Long idEmpresa = userOpt.get().getEmpresacliente();
+        BigDecimal total = parcelasService.getTotalDinheiroAlocado(idEmpresa);
+        return ResponseEntity.ok(total);
     }
 
     // ----------------- Resumo completo -----------------
@@ -91,9 +135,12 @@ public class DashController {
         HashMap<String, Object> resumo = new HashMap<>();
         resumo.put("pagoHoje", parcelasService.getTotalPagoNoDia(hoje, idEmpresa));
         resumo.put("previsaoSemana", parcelasService.getPrevisaoSemana(hoje, idEmpresa));
+        resumo.put("previsao15Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,15));
+        resumo.put("previsao30Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,30));
         resumo.put("parcelasVencidas", parcelasService.getParcelasVencidasCount(hoje, idEmpresa));
         resumo.put("contratosAtivos", parcelasService.getContratosAtivosCount(idEmpresa));
-        resumo.put("faturamento7Dias", parcelasService.getFaturamento7Dias(hoje, idEmpresa));
+        resumo.put("faturamento7Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,7));
+        resumo.put("totalAlocado", parcelasService.getTotalDinheiroAlocado(idEmpresa));
 
         return ResponseEntity.ok(resumo);
     }

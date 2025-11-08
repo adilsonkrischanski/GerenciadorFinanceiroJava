@@ -22,4 +22,6 @@ public interface EmprestimoRepository extends JpaRepository<EmprestimoEntity, Lo
 
     // Busca todos os empréstimos de uma empresa específica
     List<EmprestimoEntity> findByEmpresaId(Long empresaId);
+
+    List<EmprestimoEntity> findByEmpresaIdAndDataFechamentoIsNull(Long empresaId);
 }

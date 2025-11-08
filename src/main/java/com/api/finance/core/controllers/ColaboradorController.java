@@ -94,7 +94,9 @@ public class ColaboradorController {
         UserEntity gerente = userOptional.get();
         List<UserEntity> funcionarios = userService.findAllByEmpresa(gerente.getEmpresacliente());
 
+        // 🔹 Remove o próprio gerente da lista
         List<Map<String, Object>> lista = funcionarios.stream()
+                .filter(u -> !u.getId().equals(gerente.getId()))
                 .map(u -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("id", u.getId());
@@ -106,6 +108,7 @@ public class ColaboradorController {
 
         return ResponseEntity.ok(lista);
     }
+
 
     // 🔹 Desativar usuário (por ID)
     @PutMapping("/desativar/{id}")

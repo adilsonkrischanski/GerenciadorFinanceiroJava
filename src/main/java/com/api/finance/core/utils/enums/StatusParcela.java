@@ -3,7 +3,8 @@ package com.api.finance.core.utils.enums;
 public enum StatusParcela {
 
     PENDENTE(1, "Pendente"),
-    PAGA(2, "Paga");
+    PAGA(2, "Paga"),
+    LIQUIDADO(3, "Liquidado");
 
     private final int code;
     private final String descricao;

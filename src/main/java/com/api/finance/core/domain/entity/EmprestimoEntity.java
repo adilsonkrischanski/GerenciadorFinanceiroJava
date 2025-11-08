@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @Table(name = "tb_emprestimo")
+@Where(clause = "deletado <> true")
 public class EmprestimoEntity {
 
     @Id
@@ -51,6 +53,9 @@ public class EmprestimoEntity {
 
     @Column
     private String dataFechamento; // "yyyy-MM-dd"
+
+    @Column(nullable = false)
+    private Boolean deletado = false; // nova coluna para soft delete
 
     // Construtor padrão para JPA
     public EmprestimoEntity() {

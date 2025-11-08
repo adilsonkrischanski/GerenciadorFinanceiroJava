@@ -135,7 +135,7 @@ public class EmprestimosService {
                 e.getTipoCobranca(),
                 null, // ou converter UUID se quiser mostrar
                 fechamento != null ? fechamento.toLocalDate() : null,
-                parcelasService.calculaValorResidual(e)
+                parcelasService.saldoDevedor(e)
         );
     }
 
@@ -184,6 +184,164 @@ public class EmprestimosService {
                 .stream()
                 .filter(e -> emprestimosVencidosIds.contains(e.getId()))
                 .collect(Collectors.toList());
+    }
+
+    public void liquidarEmprestimo(UserEntity user, Long emprestimoId, BigDecimal valorPago) {
+        // 1️⃣ Busca o empréstimo
+        Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(emprestimoId);
+        if (emprestimoOpt.isEmpty()) {
+            throw new RuntimeException("Empréstimo não encontrado para liquidação.");
+        }
+        EmprestimoEntity emprestimo = emprestimoOpt.get();
+
+        // 2️⃣ Busca todas as parcelas vinculadas
+        List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimoId);
+        if (parcelas.isEmpty()) {
+            throw new RuntimeException("Nenhuma parcela encontrada para o empréstimo informado.");
+        }
+
+        // 3️⃣ Define data atual
+        Data dataAtual = new Data();
+
+        BigDecimal valorParcela = valorPago.divide(new BigDecimal(quantificaParcelasPendentes(parcelas)));
+
+        for (ParcelaEntity parcela : parcelas) {
+            if(parcela.getStatus()==StatusParcela.PAGA.getCode())
+                continue;
+
+            parcela.setStatus(StatusParcela.LIQUIDADO.getCode());
+            parcela.setDataPagamento(dataAtual.toString());
+            parcela.setUsuarioUuid(user.getId());
+            parcela.setValorPago(valorParcela);
+
+            parcelaService.save(parcela);
+        }
+
+        // Atualiza o empréstimo como fechado
+        emprestimo.setDataFechamento(dataAtual.toString());
+        emprestimoTabelaService.save(emprestimo);
+    }
+
+    private Integer quantificaParcelasPendentes(List<ParcelaEntity> parcelas){
+        Integer quant = 0;
+        for (ParcelaEntity parcela :parcelas){
+            if(parcela.getStatus() == StatusParcela.PENDENTE.getCode()){
+                quant++;
+            }
+        }
+        return quant;
+    }
+    public void deletarEmprestimo(UserEntity user, Long emprestimoId) throws Exception {
+        // Busca o empréstimo pelo ID
+        Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(emprestimoId);
+        if (emprestimoOpt.isEmpty()) {
+            throw new Exception("Empréstimo não encontrado para exclusão.");
+        }
+
+        EmprestimoEntity emprestimo = emprestimoOpt.get();
+
+        // Apenas o usuário responsável ou gerente pode deletar (opcional)
+        if (!user.isGerente() && !user.getId().equals(emprestimo.getUsuarioId())) {
+            throw new Exception("Você não tem permissão para deletar este empréstimo.");
+        }
+
+        // Marca como deletado
+        emprestimo.setDeletado(true);
+        emprestimoTabelaService.save(emprestimo);
+    }
+
+
+    // -----------------------------------------------------------
+// VERIFICA SE O EMPRÉSTIMO PODE SER EDITADO
+// -----------------------------------------------------------
+    public boolean podeEditar(Long id) {
+        Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(id);
+        if (emprestimoOpt.isEmpty()) {
+            return false;
+        }
+
+        EmprestimoEntity emprestimo = emprestimoOpt.get();
+        List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimo.getId());
+
+        boolean possuiParcelaQuitada = parcelas.stream()
+                .anyMatch(p -> p.getStatus() == StatusParcela.PAGA.getCode()
+                        || p.getStatus() == StatusParcela.LIQUIDADO.getCode());
+
+        if (!possuiParcelaQuitada) {
+            return true;
+        }
+
+        return emprestimo.getDataFechamento() == null;
+    }
+
+    // -----------------------------------------------------------
+// BUSCA UM EMPRÉSTIMO PARA EDIÇÃO
+// -----------------------------------------------------------
+    public EmprestimoDTO buscarParaEditar(Long id) {
+        Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(id);
+        if (emprestimoOpt.isEmpty()) {
+            return null;
+        }
+
+        EmprestimoEntity e = emprestimoOpt.get();
+
+        // Converte para DTO
+        Data vencimento = null;
+        Data fechamento = null;
+
+        try {
+            if (e.getVencimentoPrimeiraParcela() != null) {
+                vencimento = new Data(e.getVencimentoPrimeiraParcela());
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            if (e.getDataFechamento() != null) {
+                fechamento = new Data(e.getDataFechamento());
+            }
+        } catch (Exception ignored) {}
+
+        return new EmprestimoDTO(
+                e.getId(),
+                e.getCliente(),
+                e.getContato(),
+                e.getValor(),
+                e.getTipoEmprestimo(),
+                e.getTaxaJuros(),
+                e.getQuantidadeParcelas(),
+                vencimento != null ? vencimento.toLocalDate() : null,
+                e.getTipoCobranca(),
+                6556664866l,
+                fechamento != null ? fechamento.toLocalDate() : null,
+                parcelasService.calculaValorResidual(e)
+        );
+    }
+
+    // -----------------------------------------------------------
+// ATUALIZA UM EMPRÉSTIMO EXISTENTE
+// -----------------------------------------------------------
+    public EmprestimoDTO atualizar(Long id, EmprestimoDTO dto) {
+        Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(id);
+        if (emprestimoOpt.isEmpty()) {
+            return null;
+        }
+
+        EmprestimoEntity emprestimo = emprestimoOpt.get();
+
+        // Atualiza os campos editáveis
+        emprestimo.setCliente(dto.getCliente());
+        emprestimo.setContato(dto.getContato());
+        emprestimo.setValor(dto.getValor());
+        emprestimo.setTipoEmprestimo(dto.getTipoEmprestimo());
+        emprestimo.setTaxaJuros(dto.getTaxaJuros());
+        emprestimo.setQuantidadeParcelas(dto.getQuantidadeParcelas());
+        emprestimo.setVencimentoPrimeiraParcela(dto.getVencimentoPrimeiraParcela() != null ? dto.getVencimentoPrimeiraParcela().toString() : null);
+        emprestimo.setTipoCobranca(dto.getTipoCobranca());
+
+        emprestimoTabelaService.save(emprestimo);
+
+        // Retorna DTO atualizado
+        return buscarParaEditar(id);
     }
 
 }

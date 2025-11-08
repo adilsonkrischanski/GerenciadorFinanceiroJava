@@ -11,6 +11,7 @@ import com.api.finance.core.dto.EmprestimoDTO;
 
 import com.api.finance.core.services.programa.EmprestimosService;
 import com.api.finance.core.services.programa.ParcelasService;
+import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.utils.enums.StatusParcela;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,6 +39,8 @@ public class EmprestimoController {
 
     @Autowired
     ParcelasService parcelaService;
+
+
 
     @GetMapping("/test-integracao")
     public ResponseEntity<Map<String, UUID>> testIntegration(@AuthenticationPrincipal UserSecurity userSecurity) {
@@ -101,13 +105,96 @@ public class EmprestimoController {
     }
 
 
+    @PostMapping("liquidar/{id}")
+    public ResponseEntity<String> liquidar(
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @PathVariable("id") Long emprestimoId,
+            @RequestBody Map<String, BigDecimal> payload) {
+
+        BigDecimal valorPago = payload.get("valorPago");
+
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("Usuário não encontrado");
+        }
+
+        try {
+            emprestimoService.liquidarEmprestimo(userOpt.get(), emprestimoId,valorPago);
+            return ResponseEntity.ok("Empréstimo liquidado com sucesso");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Map<String, String>> deletarEmprestimo(
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @PathVariable("id") Long emprestimoId) {
+
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
+        }
+
+        try {
+            emprestimoService.deletarEmprestimo(userOpt.get(), emprestimoId);
+            Map<String, String> response = new HashMap<>();
+            response.put("result", "Empréstimo deletado com sucesso");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
 
 
+    }
+
+    // ✅ 1. Verifica se é possível editar
+    @GetMapping("/pode-editar/{id}")
+    public ResponseEntity<Boolean> podeEditar(@AuthenticationPrincipal UserSecurity userSecurity,
+                                              @PathVariable Long id) {
+        boolean podeEditar = emprestimoService.podeEditar(id);
+        return ResponseEntity.ok(podeEditar);
+    }
+
+    // ✅ 2. Busca o objeto para edição
+    @GetMapping("/editar/{id}")
+    public ResponseEntity<EmprestimoDTO> buscarParaEditar(@AuthenticationPrincipal UserSecurity userSecurity,
+                                                          @PathVariable Long id) {
+        EmprestimoDTO dto = emprestimoService.buscarParaEditar(id);
+        if (dto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(dto);
+    }
 
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<EmprestimoDTO> atualizar(@AuthenticationPrincipal UserSecurity userSecurity,
+                                                   @PathVariable Long id, @RequestBody EmprestimoDTO dto) {
 
+        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(new EmprestimoDTO());
+        }
 
-
-
+        EmprestimoDTO atualizado = emprestimoService.atualizar(id, dto);
+        if (atualizado == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(atualizado);
+    }
 
 }
+
+
+
