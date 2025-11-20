@@ -132,6 +132,8 @@ public class DashController {
         Long idEmpresa = userOpt.get().getEmpresacliente();
         LocalDate hoje = LocalDate.now();
 
+
+
         HashMap<String, Object> resumo = new HashMap<>();
         resumo.put("pagoHoje", parcelasService.getTotalPagoNoDia(hoje, idEmpresa));
         resumo.put("previsaoSemana", parcelasService.getPrevisaoSemana(hoje, idEmpresa));

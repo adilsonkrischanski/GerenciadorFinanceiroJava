@@ -41,7 +41,7 @@ public class EmprestimosService {
         emprestimo.setCliente(body.getCliente());
         emprestimo.setContato(body.getContato());
         emprestimo.setValor(body.getValor());
-        emprestimo.setUsuarioId(UUID.randomUUID());
+        emprestimo.setUsuarioId(userGestor.getId());
         emprestimo.setTaxaJuros(body.getTaxaJuros());
         emprestimo.setTipoEmprestimo(TipoEmprestimo.fromCode(body.getTipoEmprestimo()).getCode());
         emprestimo.setEmpresaId(userGestor.getEmpresacliente());
@@ -133,7 +133,7 @@ public class EmprestimosService {
                 e.getQuantidadeParcelas(),
                 vencimento != null ? vencimento.toLocalDate() : null,
                 e.getTipoCobranca(),
-                null, // ou converter UUID se quiser mostrar
+                e.getUsuarioId(), // ou converter UUID se quiser mostrar
                 fechamento != null ? fechamento.toLocalDate() : null,
                 parcelasService.saldoDevedor(e)
         );
@@ -311,7 +311,7 @@ public class EmprestimosService {
                 e.getQuantidadeParcelas(),
                 vencimento != null ? vencimento.toLocalDate() : null,
                 e.getTipoCobranca(),
-                6556664866l,
+                e.getUsuarioId(),
                 fechamento != null ? fechamento.toLocalDate() : null,
                 parcelasService.calculaValorResidual(e)
         );
@@ -344,4 +344,31 @@ public class EmprestimosService {
         return buscarParaEditar(id);
     }
 
+    public EmprestimoDTO findEmprestimo(Long id) {
+        return toDTO(findbyId(id));
+
+    }
+    public EmprestimoEntity findbyId(Long id) {
+        return emprestimoTabelaService.findById(id)
+                .orElseThrow(() -> new RuntimeException("Empréstimo não encontrado: " + id));
+    }
+
+    public List<EmprestimoDTO> listarEmprestimosVenceHoje(UserEntity userGestor) {
+
+        LocalDate hoje = LocalDate.now();
+
+        // Obtém os IDs dos empréstimos que têm parcelas vencidas
+        Set<Long> emprestimosVencidosIds = parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> LocalDate.parse(p.getVencimento()).equals(hoje))
+                .map(ParcelaEntity::getEmprestimoId)
+                .collect(Collectors.toSet());
+
+        // Filtra apenas os empréstimos correntes do gestor que possuem parcelas vencidas
+        return listarEmprestimosCorrentesDTO(userGestor)
+                .stream()
+                .filter(e -> emprestimosVencidosIds.contains(e.getId()))
+                .collect(Collectors.toList());
+
+    }
 }

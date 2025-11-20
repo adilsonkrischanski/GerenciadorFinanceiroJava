@@ -64,9 +64,9 @@ public class EmprestimoController {
         Optional<UserEntity> userGestorOptional = userService.findById(userSecurity.getUser());
 
         UserEntity userGestor = userGestorOptional.get();
-        if (!userGestor.isGerente()) {
-            throw new Exception("Voce precisar estar logado como ser o responsavel para cadastrar um emprestimo");
-        }
+//        if (!userGestor.isGerente()) {
+//            throw new Exception("Voce precisar estar logado como ser o responsavel para cadastrar um emprestimo");
+//        }
         return emprestimoService.criarEmprestimo(userGestor, body);
 
 
@@ -96,12 +96,47 @@ public class EmprestimoController {
             case "vencido":
                 emprestimos = emprestimoService.listarEmprestimosComParcelasVencidasDTO(userGestor);
                 break;
+            case "hoje":
+                emprestimos = emprestimoService.listarEmprestimosVenceHoje(userGestor);
+                break;
             default:
                 emprestimos = emprestimoService.listarEmprestimosCorrentesDTO(userGestor);
                 break;
         }
 
-        return ResponseEntity.ok(emprestimos);
+        emprestimos.sort(Comparator.comparing(EmprestimoDTO::getCliente, String.CASE_INSENSITIVE_ORDER));
+        if(userGestor.isGerente()){
+            return ResponseEntity.ok(emprestimos);
+        }else{
+            UUID usuarioId = userGestor.getId();
+            List<EmprestimoDTO> filtrados = emprestimos.stream()
+                    .filter(e -> e.getUsuarioId() != null && e.getUsuarioId().equals(usuarioId))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(filtrados);
+        }
+
+    }
+
+    @GetMapping("/list/{id}")
+    public ResponseEntity<EmprestimoDTO> findEmprestimo(
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @PathVariable("id") Long emprestimoId){
+
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Optional<UserEntity> userGestorOptional = userService.findById(userSecurity.getUser());
+        if (!userGestorOptional.isPresent()) {
+            return ResponseEntity.status(404).build();
+        }
+
+        UserEntity user = userGestorOptional.get();
+        EmprestimoDTO emprestimo;
+
+        emprestimo = emprestimoService.findEmprestimo(emprestimoId);
+        return ResponseEntity.ok(emprestimo);
+
     }
 
 

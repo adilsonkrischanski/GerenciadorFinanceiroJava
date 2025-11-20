@@ -87,7 +87,7 @@ public class ParcelaController {
         UserEntity userGestor = userGestorOptional.get();
 
         try {
-            boolean sucesso = parcelaService.confirmarPagamento(userGestor, dto);
+             boolean sucesso = parcelaService.confirmarPagamento(userGestor, dto);
 
             if (!sucesso) {
                 return ResponseEntity.badRequest().body(Map.of(

@@ -94,7 +94,7 @@ public class ParcelasService {
             parcela.setStatus(StatusParcela.PAGA.getCode());
             AcrescimoPorAtraso acrescimoPorAtraso = new AcrescimoPorAtraso();
             acrescimoPorAtraso.setEmprestimoId(parcela.getEmprestimoId());
-            Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(dto.getEmprestimoId());
+            Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(parcela.getEmprestimoId());
             Long maxId = maxIdOpt.orElse(0L);
             acrescimoPorAtraso.setId(maxId+1);
             acrescimoPorAtraso.setValorAtraso(parcela.getValorOriginal().subtract(parcela.getValorPago()));
@@ -122,7 +122,7 @@ public class ParcelasService {
         if (saldoDevedor.compareTo(BigDecimal.ZERO) <= 0) {
             emprestimo.setDataFechamento(new Data().toString());
             emprestimosService.save(emprestimo);
-            return;\
+            return;
         }
         BigDecimal parcelaAtual = CalculadoraJuros.calcularParcela(saldoDevedor, 1, emprestimo.getTaxaJuros(), emprestimo.getTipoEmprestimo());
         novaParcelaEspecial(user, emprestimo, parcelaAtual, parcelaEntities.size() + 1);
@@ -157,31 +157,37 @@ public class ParcelasService {
         return valorPendente;
     }
 
-    private BigDecimal calculaValorPendenteEspecial(EmprestimoEntity emprestimo,List<ParcelaEntity> parcelas) {
+    private BigDecimal calculaValorPendenteEspecial(EmprestimoEntity emprestimo, List<ParcelaEntity> parcelas) {
         BigDecimal valorPendente = emprestimo.getValor();
-        BigDecimal integral = BigDecimal.ZERO;
+        BigDecimal valorPendentes = BigDecimal.ZERO;
 
         for (ParcelaEntity parcela : parcelas) {
+
             BigDecimal pago = parcela.getValorPago() != null ? parcela.getValorPago() : BigDecimal.ZERO;
             BigDecimal desconto = parcela.getValorDesconto() != null ? parcela.getValorDesconto() : BigDecimal.ZERO;
             BigDecimal totalparc = parcela.getValorOriginal() != null ? parcela.getValorOriginal() : BigDecimal.ZERO;
-            if(totalparc.compareTo(pago.add(desconto))<0){
+
+            // Caso tenha pagado mais do que a parcela vale
+            if (totalparc.compareTo(pago.add(desconto)) < 0) {
                 BigDecimal pagouMais = pago.add(desconto).subtract(totalparc);
                 valorPendente = valorPendente.subtract(pagouMais);
             }
-            if(parcela.getStatus() ==StatusParcela.PENDENTE.getCode()){
-                integral = integral.add(parcela.getValorOriginal());
+
+            // Somar parcelas PENDENTES
+            if (parcela.getStatus() == StatusParcela.PENDENTE.getCode()) {
+                valorPendentes = valorPendentes.add(totalparc);
             }
-
-
         }
+
         BigDecimal totalAtrasos = acrescimoPorAtrasoRepository.findByEmprestimoId(emprestimo.getId())
                 .stream()
                 .map(a -> a.getValorAtraso() != null ? a.getValorAtraso() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return valorPendente.add(totalAtrasos);
+        // Agora sim: soma parcelas pendentes + atrasos
+        return valorPendente.add(valorPendentes).add(totalAtrasos);
     }
+
 
 
     private void novaParcelaEspecial(UserEntity user, EmprestimoEntity emprestimo, BigDecimal valor, int parcelaNumero) {
