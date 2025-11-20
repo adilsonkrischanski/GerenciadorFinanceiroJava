@@ -36,6 +36,8 @@ com/api/finance/core/services/sistema/Data.class
 com/api/finance/auth/domain/user/UserSecurity.class
 com/api/finance/core/utils/enums/Country.class
 com/api/finance/auth/service/UserService.class
+com/api/finance/core/domain/entity/AcrescimoPorAtraso.class
+com/api/finance/core/repositories/AcrescimoPorAtrasoRepository.class
 com/api/finance/core/services/sistema/Data$1.class
 com/api/finance/auth/dto/LoginDTO.class
 com/api/finance/core/services/programa/EmprestimosService.class

@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ParcelasService {
@@ -121,7 +122,7 @@ public class ParcelasService {
         if (saldoDevedor.compareTo(BigDecimal.ZERO) <= 0) {
             emprestimo.setDataFechamento(new Data().toString());
             emprestimosService.save(emprestimo);
-            return;
+            return;\
         }
         BigDecimal parcelaAtual = CalculadoraJuros.calcularParcela(saldoDevedor, 1, emprestimo.getTaxaJuros(), emprestimo.getTipoEmprestimo());
         novaParcelaEspecial(user, emprestimo, parcelaAtual, parcelaEntities.size() + 1);
@@ -300,7 +301,12 @@ public class ParcelasService {
 
     public BigDecimal getTotalDinheiroAlocado(Long idEmpresa) {
         // Busca todos os empréstimos da empresa
-        List<EmprestimoEntity> emprestimos = emprestimosService.findByAtivosEmpresaId(idEmpresa);
+        List<EmprestimoEntity> emprestimosBase = emprestimosService.findByEmpresaId(idEmpresa);
+
+        List<EmprestimoEntity> emprestimos = emprestimosBase.stream()
+                .filter(emprestimo -> parcelaService.temParcelasPendentes(emprestimo.getId()))
+                .collect(Collectors.toList());
+//        List<EmprestimoEntity> emprestimos = emprestimosService.findByAtivosEmpresaId(idEmpresa);
 
         // Se não houver empréstimos, retorna zero
         if (emprestimos == null || emprestimos.isEmpty()) {

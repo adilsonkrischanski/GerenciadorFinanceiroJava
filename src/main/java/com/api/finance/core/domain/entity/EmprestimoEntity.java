@@ -54,7 +54,7 @@ public class EmprestimoEntity {
     @Column
     private String dataFechamento; // "yyyy-MM-dd"
 
-    @Column(nullable = false)
+    @Column
     private Boolean deletado = false; // nova coluna para soft delete
 
     // Construtor padrão para JPA

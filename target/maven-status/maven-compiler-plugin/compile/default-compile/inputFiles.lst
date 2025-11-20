@@ -20,12 +20,14 @@
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/controllers/EmprestimoController.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/controllers/ParcelaController.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/controllers/SpaController.java
+/home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/domain/entity/AcrescimoPorAtraso.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/domain/entity/EmpresaClienteSequence.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/domain/entity/EmprestimoEntity.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/domain/entity/ParcelaEntity.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/domain/entity/colaborador.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/dto/EmprestimoDTO.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/dto/ParcelaDTO.java
+/home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/repositories/AcrescimoPorAtrasoRepository.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/repositories/EmpresaClienteSequenceRepository.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/repositories/EmprestimoRepository.java
 /home/krischanski/sistema_financeiro/GerenciadorFinanceiroJava/src/main/java/com/api/finance/core/repositories/ParcelaRepository.java

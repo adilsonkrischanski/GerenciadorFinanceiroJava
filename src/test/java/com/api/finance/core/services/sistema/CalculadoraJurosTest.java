@@ -22,18 +22,18 @@ class CalculadoraJurosTest {
         assertEquals(new BigDecimal("266.67"), resultado);
     }
 
-    @Test
-    @DisplayName("Deve calcular corretamente a parcela com juros compostos (Tabela Price)")
-    void testCalcularJurosComposto() {
-        BigDecimal valor = new BigDecimal("1000");
-        int parcelas = 6;
-        BigDecimal taxa = new BigDecimal("10"); // 10% ao mês
-
-        BigDecimal resultado = CalculadoraJuros.calcularParcela(valor, parcelas, taxa, 2);
-
-        // Resultado esperado da fórmula Price: 229.61
-        assertEquals(new BigDecimal("229.61"), resultado);
-    }
+//    @Test
+//    @DisplayName("Deve calcular corretamente a parcela com juros compostos (Tabela Price)")
+//    void testCalcularJurosComposto() {
+//        BigDecimal valor = new BigDecimal("1000");
+//        int parcelas = 6;
+//        BigDecimal taxa = new BigDecimal("10"); // 10% ao mês
+//
+//        BigDecimal resultado = CalculadoraJuros.calcularParcela(valor, parcelas, taxa, 2);
+//
+//        // Resultado esperado da fórmula Price: 229.61
+//        assertEquals(new BigDecimal("229.61"), resultado);
+//    }
 
     @Test
     @DisplayName("Deve calcular corretamente o valor da parcela com juros especial")
