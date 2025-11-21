@@ -346,5 +346,23 @@ public class ParcelasService {
         // Salvar
         parcelaService.save(parcela);
     }
+
+    public BigDecimal faturadoUltimosDias(LocalDate hoje, Long idEmpresa, int quantidadeDiasAtras) {
+        String dataStr = hoje.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        BigDecimal total = BigDecimal.ZERO;
+        total = total.add(parcelaService.findByStatus(StatusParcela.PAGA.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        total = total.add(parcelaService.findByStatus(StatusParcela.LIQUIDADO.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        return total;
+    }
 }
 

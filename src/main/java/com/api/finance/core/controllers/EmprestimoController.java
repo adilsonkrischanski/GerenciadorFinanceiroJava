@@ -96,8 +96,11 @@ public class EmprestimoController {
             case "vencido":
                 emprestimos = emprestimoService.listarEmprestimosComParcelasVencidasDTO(userGestor);
                 break;
-            case "hoje":
+            case "venchoje":
                 emprestimos = emprestimoService.listarEmprestimosVenceHoje(userGestor);
+                break;
+            case "pagohoje":
+                emprestimos = emprestimoService.listarEmprestimosPagoHoje(userGestor);
                 break;
             default:
                 emprestimos = emprestimoService.listarEmprestimosCorrentesDTO(userGestor);

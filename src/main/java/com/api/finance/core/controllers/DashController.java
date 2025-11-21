@@ -141,7 +141,7 @@ public class DashController {
         resumo.put("previsao30Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,30));
         resumo.put("parcelasVencidas", parcelasService.getParcelasVencidasCount(hoje, idEmpresa));
         resumo.put("contratosAtivos", parcelasService.getContratosAtivosCount(idEmpresa));
-        resumo.put("faturamento7Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,7));
+        resumo.put("faturamento7DiasPassados", parcelasService.faturadoUltimosDias(hoje, idEmpresa,7));
         resumo.put("totalAlocado", parcelasService.getTotalDinheiroAlocado(idEmpresa));
 
         return ResponseEntity.ok(resumo);

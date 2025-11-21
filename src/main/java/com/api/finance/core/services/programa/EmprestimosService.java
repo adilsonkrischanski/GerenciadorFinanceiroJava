@@ -371,4 +371,23 @@ public class EmprestimosService {
                 .collect(Collectors.toList());
 
     }
+
+    public List<EmprestimoDTO> listarEmprestimosPagoHoje(UserEntity userGestor) {
+        LocalDate hoje = LocalDate.now();
+
+        // Obtém os IDs dos empréstimos que têm parcelas vencidas
+        Set<Long> emprestimosVencidosIds = parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
+                .stream()
+                .filter(p -> LocalDate.parse(p.getVencimento()).equals(hoje))
+                .map(ParcelaEntity::getEmprestimoId)
+                .collect(Collectors.toSet());
+
+        // Filtra apenas os empréstimos correntes do gestor que possuem parcelas vencidas
+        return listarEmprestimosCorrentesDTO(userGestor)
+                .stream()
+                .filter(e -> emprestimosVencidosIds.contains(e.getId()))
+                .collect(Collectors.toList());
+
+
+    }
 }
