@@ -34,12 +34,21 @@ public class CalculadoraJuros {
      * Calcula o valor de uma parcela com juros compostos.
      */
     private static BigDecimal calcularJurosComposto(BigDecimal valor, int quantidadeParcelas, BigDecimal taxaJuros) {
+        // Converte a taxa percentual (ex: 10) em decimal (0.10)
         BigDecimal taxaDecimal = taxaJuros.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+
+        // Calcula o fator (1 + i)^n
         BigDecimal fator = BigDecimal.ONE.add(taxaDecimal).pow(quantidadeParcelas);
-        BigDecimal parcela = valor.multiply(taxaDecimal).multiply(fator)
-                .divide(fator.subtract(BigDecimal.ONE), 2, RoundingMode.HALF_UP);
-        return parcela;
+
+        // Fórmula da Tabela Price:
+        // Parcela = valor * [i * (1 + i)^n] / [(1 + i)^n - 1]
+        BigDecimal numerador = valor.multiply(taxaDecimal).multiply(fator);
+        BigDecimal denominador = fator.subtract(BigDecimal.ONE);
+
+        // Retorna a parcela com 2 casas decimais
+        return numerador.divide(new BigDecimal(quantidadeParcelas/10), 2, RoundingMode.HALF_UP);
     }
+
 
     /**
      * Calcula o valor de uma parcela para juros especial (a taxa é a própria parcela).

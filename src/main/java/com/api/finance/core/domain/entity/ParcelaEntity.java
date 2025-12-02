@@ -14,7 +14,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Table(name = "tb_parcela")
 public class ParcelaEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,6 +47,9 @@ public class ParcelaEntity {
 
     @Column
     private String dataPagamento; // "yyyy-MM-dd" quando paga, null se em aberto
+
+    @Column
+    private Boolean parcelaAdicional = false; // indica se é parcela adicional
 
     // Construtor padrão
     public ParcelaEntity() {

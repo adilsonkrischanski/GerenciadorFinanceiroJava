@@ -1,9 +1,11 @@
 package com.api.finance.core.services.programa;
 
 import com.api.finance.auth.domain.user.UserEntity;
+import com.api.finance.core.domain.entity.AcrescimoPorAtraso;
 import com.api.finance.core.domain.entity.EmprestimoEntity;
 import com.api.finance.core.domain.entity.ParcelaEntity;
 import com.api.finance.core.dto.ParcelaDTO;
+import com.api.finance.core.repositories.AcrescimoPorAtrasoRepository;
 import com.api.finance.core.services.sistema.CalculadoraJuros;
 import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.services.tabela.EmprestimoService;
@@ -18,6 +20,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ParcelasService {
@@ -26,6 +29,9 @@ public class ParcelasService {
     com.api.finance.core.services.tabela.ParcelaService parcelaService;
     @Autowired
     EmprestimoService emprestimosService;
+
+    @Autowired
+    AcrescimoPorAtrasoRepository acrescimoPorAtrasoRepository;
 
 
     public List<ParcelaEntity> buscarPorEmprestimoId(Long emprestimoId) {
@@ -73,23 +79,27 @@ public class ParcelasService {
         parcela.setDataPagamento(new Data().toString());
         parcela.setUsuarioUuid(user.getId());
 
-        // Valores monetários com null-safe
-        BigDecimal desconto = dto.getValorDesconto().add(parcela.getValorDesconto()) != null ? dto.getValorDesconto() : BigDecimal.ZERO;
-        BigDecimal valorPago = dto.getValorPago() != null ? dto.getValorPago() : BigDecimal.ZERO;
-        valorPago = valorPago.add(parcela.getValorPago());
+        // Atualiza os valores da parcela
+        parcela.setValorPago(dto.getValorPago());
+        parcela.setValorDesconto(dto.getValorDesconto());
 
-        // Soma o total do pagamento + desconto
-        BigDecimal totalPago = valorPago.add(desconto);
-
-        // Atualiza valores na parcela
-        parcela.setValorDesconto(desconto);
-        parcela.setValorPago(valorPago); // valor pago nesta transação
+        // Calcula o total pago para comparar com o valor original
+        BigDecimal totalPago = parcela.getValorPago().add(parcela.getValorDesconto());// valor pago nesta transação
 
         // Verifica se o valor pago cobre a parcela
         if (parcela.getValorOriginal().compareTo(totalPago) <= 0) {
             parcela.setStatus(StatusParcela.PAGA.getCode());
+
         } else {
-            parcela.setStatus(StatusParcela.PENDENTE.getCode());
+            parcela.setStatus(StatusParcela.PAGA.getCode());
+            AcrescimoPorAtraso acrescimoPorAtraso = new AcrescimoPorAtraso();
+            acrescimoPorAtraso.setEmprestimoId(parcela.getEmprestimoId());
+            Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(parcela.getEmprestimoId());
+            Long maxId = maxIdOpt.orElse(0L);
+            acrescimoPorAtraso.setId(maxId+1);
+            acrescimoPorAtraso.setValorAtraso(parcela.getValorOriginal().subtract(parcela.getValorPago()));
+            acrescimoPorAtraso.setDataRegistro(new Data().toString());
+            acrescimoPorAtrasoRepository.save(acrescimoPorAtraso);
         }
 
         // Salva atualização
@@ -108,7 +118,7 @@ public class ParcelasService {
 
     private void gerarNovaParcela(UserEntity user, EmprestimoEntity emprestimo) {
         List<ParcelaEntity> parcelaEntities = parcelaService.buscarPorEmprestimoId(emprestimo.getId());
-        BigDecimal saldoDevedor = saldoDevedor(emprestimo, parcelaEntities);
+        BigDecimal saldoDevedor = saldoDevedor(emprestimo);
         if (saldoDevedor.compareTo(BigDecimal.ZERO) <= 0) {
             emprestimo.setDataFechamento(new Data().toString());
             emprestimosService.save(emprestimo);
@@ -120,15 +130,65 @@ public class ParcelasService {
 
     }
 
-    private BigDecimal saldoDevedor(EmprestimoEntity emprestimo, List<ParcelaEntity> parcelaEntities) {
-        BigDecimal acumulalator = BigDecimal.ZERO;
-        for (ParcelaEntity parcela : parcelaEntities) {
-            BigDecimal total = parcela.getValorPago().add(parcela.getValorDesconto());
-            BigDecimal sobra = total.subtract(parcela.getValorOriginal());
-            acumulalator = acumulalator.add(sobra);
+    BigDecimal saldoDevedor(EmprestimoEntity emprestimo) {
+        List<ParcelaEntity> parcelaEntities = parcelaService.buscarPorEmprestimoId(emprestimo.getId());
+        if(emprestimo.getTipoEmprestimo()==TipoEmprestimo.ESPECIAL.getCode()){
+            return calculaValorPendenteEspecial(emprestimo,parcelaEntities);
+        }else{
+            return calculaPendenteNormal(emprestimo,parcelaEntities);
+
         }
-        return emprestimo.getValor().subtract(acumulalator);
     }
+
+    private BigDecimal calculaPendenteNormal(EmprestimoEntity emprestimo, List<ParcelaEntity> parcelas) {
+        BigDecimal valorPendente = BigDecimal.ZERO;
+
+        for (ParcelaEntity parcela : parcelas) {
+            BigDecimal pago = parcela.getValorPago() != null ? parcela.getValorPago() : BigDecimal.ZERO;
+            BigDecimal desconto = parcela.getValorDesconto() != null ? parcela.getValorDesconto() : BigDecimal.ZERO;
+            BigDecimal totalparc = parcela.getValorOriginal() != null ? parcela.getValorOriginal() : BigDecimal.ZERO;
+
+            // valor ainda pendente dessa parcela
+            BigDecimal pendenteParcela = totalparc.subtract(pago.add(desconto));
+
+            valorPendente = valorPendente.add(pendenteParcela);
+        }
+
+        return valorPendente;
+    }
+
+    private BigDecimal calculaValorPendenteEspecial(EmprestimoEntity emprestimo, List<ParcelaEntity> parcelas) {
+        BigDecimal valorPendente = emprestimo.getValor();
+        BigDecimal valorPendentes = BigDecimal.ZERO;
+
+        for (ParcelaEntity parcela : parcelas) {
+
+            BigDecimal pago = parcela.getValorPago() != null ? parcela.getValorPago() : BigDecimal.ZERO;
+            BigDecimal desconto = parcela.getValorDesconto() != null ? parcela.getValorDesconto() : BigDecimal.ZERO;
+            BigDecimal totalparc = parcela.getValorOriginal() != null ? parcela.getValorOriginal() : BigDecimal.ZERO;
+
+            // Caso tenha pagado mais do que a parcela vale
+            if (totalparc.compareTo(pago.add(desconto)) < 0) {
+                BigDecimal pagouMais = pago.add(desconto).subtract(totalparc);
+                valorPendente = valorPendente.subtract(pagouMais);
+            }
+
+            // Somar parcelas PENDENTES
+            if (parcela.getStatus() == StatusParcela.PENDENTE.getCode()) {
+                valorPendentes = valorPendentes.add(totalparc);
+            }
+        }
+
+        BigDecimal totalAtrasos = acrescimoPorAtrasoRepository.findByEmprestimoId(emprestimo.getId())
+                .stream()
+                .map(a -> a.getValorAtraso() != null ? a.getValorAtraso() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Agora sim: soma parcelas pendentes + atrasos
+        return valorPendente.add(valorPendentes).add(totalAtrasos);
+    }
+
+
 
     private void novaParcelaEspecial(UserEntity user, EmprestimoEntity emprestimo, BigDecimal valor, int parcelaNumero) {
         ParcelaEntity parcela = new ParcelaEntity();
@@ -140,7 +200,7 @@ public class ParcelasService {
         parcela.setValorOriginal(valor);
         parcela.setValorPago(BigDecimal.ZERO);
         parcela.setValorDesconto(BigDecimal.ZERO);
-        parcela.setJuros(BigDecimal.ZERO); //jurosPorVencimento
+        parcela.setJuros(BigDecimal.ZERO);
         parcela.setUsuarioUuid(user.getId());
         parcela.setDataPagamento(null);
         parcelaService.save(parcela);
@@ -162,35 +222,28 @@ public class ParcelasService {
     }
 
     public BigDecimal calculaValorResidual(EmprestimoEntity emprestimo) {
+        return  saldoDevedor(emprestimo);
 
-        // Busca todas as parcelas vinculadas ao empréstimo
-        List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimo.getId());
-        if (emprestimo.getTipoEmprestimo() == TipoEmprestimo.ESPECIAL.getCode()) {
-            return  saldoDevedor(emprestimo,parcelas);
-        }
-        else {
-            BigDecimal falta = BigDecimal.ZERO;
-            for (ParcelaEntity parcela : parcelas) {
-                if (parcela.getStatus() == StatusParcela.PAGA.getCode()) {
-                    continue;
-                }
-                falta = falta.add(parcela.getValorOriginal());
-            }
-            return   falta;
-        }
     }
 
 
     // ------------------- Total pago hoje -------------------
     public BigDecimal getTotalPagoNoDia(LocalDate hoje, Long idEmpresa) {
         String dataStr = hoje.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-        return parcelaService.findByStatus(StatusParcela.PAGA.getCode())
+        BigDecimal total = BigDecimal.ZERO;
+        total = total.add(parcelaService.findByStatus(StatusParcela.PAGA.getCode())
                 .stream()
                 .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
                 .filter(p -> pertenceEmpresa(p, idEmpresa))
                 .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        total = total.add(parcelaService.findByStatus(StatusParcela.LIQUIDADO.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        return total;
     }
 
     // ------------------- Previsão da semana -------------------
@@ -232,8 +285,8 @@ public class ParcelasService {
     }
 
     // ------------------- Faturamento previsto para 7 dias -------------------
-    public BigDecimal getFaturamento7Dias(LocalDate hoje, Long idEmpresa) {
-        LocalDate semanaFinal = hoje.plusDays(7);
+    public BigDecimal getPrevisaoFaturamentoDias(LocalDate hoje, Long idEmpresa,int diasFuturo) {
+        LocalDate semanaFinal = hoje.plusDays(diasFuturo);
 
         return parcelaService.findByStatus(StatusParcela.PENDENTE.getCode())
                 .stream()
@@ -252,5 +305,64 @@ public class ParcelasService {
         return emprestimo.isPresent() && emprestimo.get().getEmpresaId().equals(idEmpresa);
     }
 
+    public BigDecimal getTotalDinheiroAlocado(Long idEmpresa) {
+        // Busca todos os empréstimos da empresa
+        List<EmprestimoEntity> emprestimosBase = emprestimosService.findByEmpresaId(idEmpresa);
+
+        List<EmprestimoEntity> emprestimos = emprestimosBase.stream()
+                .filter(emprestimo -> parcelaService.temParcelasPendentes(emprestimo.getId()))
+                .collect(Collectors.toList());
+//        List<EmprestimoEntity> emprestimos = emprestimosService.findByAtivosEmpresaId(idEmpresa);
+
+        // Se não houver empréstimos, retorna zero
+        if (emprestimos == null || emprestimos.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        // Soma o valor residual (saldo devedor) de cada empréstimo
+        return emprestimos.stream()
+                .map(this::calculaValorResidual) // usa o método já existente
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void criarParcelaAdicional(UserEntity userEntity, Long idEmprestimo, BigDecimal valor) throws Exception {
+        EmprestimoEntity emprestimo = emprestimosService.findById(idEmprestimo)
+                .orElseThrow(() -> new Exception("Empréstimo não encontrado"));
+
+        List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimo.getId());
+
+        // Criar nova parcela
+        ParcelaEntity parcela = new ParcelaEntity();
+        parcela.setNumeroParcela(parcelas.size()+1);
+        parcela.setEmprestimoId(emprestimo.getId());
+        parcela.setValorOriginal(BigDecimal.ZERO);
+        parcela.setValorPago(valor);
+        parcela.setStatus(StatusParcela.PAGA.getCode());
+        parcela.setVencimento(new Data().toString());
+        parcela.setDataPagamento(new Data().toString());
+        parcela.setUsuarioUuid(userEntity.getId());
+        parcela.setParcelaAdicional(true);
+
+        // Salvar
+        parcelaService.save(parcela);
+    }
+
+    public BigDecimal faturadoUltimosDias(LocalDate hoje, Long idEmpresa, int quantidadeDiasAtras) {
+        String dataStr = hoje.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        BigDecimal total = BigDecimal.ZERO;
+        total = total.add(parcelaService.findByStatus(StatusParcela.PAGA.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        total = total.add(parcelaService.findByStatus(StatusParcela.LIQUIDADO.getCode())
+                .stream()
+                .filter(p -> p.getDataPagamento() != null && p.getDataPagamento().equals(dataStr))
+                .filter(p -> pertenceEmpresa(p, idEmpresa))
+                .map(p -> p.getValorPago() != null ? p.getValorPago() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        return total;
+    }
 }
 
