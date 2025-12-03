@@ -4,6 +4,7 @@ import com.api.finance.auth.domain.user.UserEntity;
 import com.api.finance.core.domain.entity.EmprestimoEntity;
 import com.api.finance.core.domain.entity.ParcelaEntity;
 import com.api.finance.core.dto.EmprestimoDTO;
+import com.api.finance.core.dto.ParcelaDTO;
 import com.api.finance.core.services.sistema.CalculadoraJuros;
 import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.services.tabela.ParcelaService;
@@ -135,8 +136,32 @@ public class EmprestimosService {
                 e.getTipoCobranca(),
                 e.getUsuarioId(), // ou converter UUID se quiser mostrar
                 fechamento != null ? fechamento.toLocalDate() : null,
-                parcelasService.saldoDevedor(e)
+                parcelasService.saldoDevedor(e),
+                parcelaService.findByEmprestimoId(e.getId())
+                        .stream()
+                        .map(p -> toParcelaDTO(p))
+                        .collect(Collectors.toList())
+
+
         );
+    }
+
+    private ParcelaDTO toParcelaDTO(ParcelaEntity parcela) {
+        ParcelaDTO parcelaDTO = new ParcelaDTO();
+        parcelaDTO.setId(parcelaDTO.getId());
+        parcelaDTO.setEmprestimoId(parcelaDTO.getEmprestimoId());
+        parcelaDTO.setNumeroParcela(parcela.getNumeroParcela());
+        parcelaDTO.setVencimento(parcela.getVencimento());
+        parcelaDTO.setStatus(parcela.getStatus());
+        parcelaDTO.setValorOriginal(parcela.getValorOriginal());
+        parcelaDTO.setValorPago(parcela.getValorPago());
+        parcelaDTO.setValorDesconto(parcela.getValorDesconto());
+        parcelaDTO.setJuros(parcela.getJuros());
+        parcelaDTO.setUsuarioUuid(parcela.getUsuarioUuid());
+        parcelaDTO.setDataPagamento(parcela.getDataPagamento());
+        return parcelaDTO;
+
+
     }
 
     // -----------------------------------------------------------
@@ -313,14 +338,15 @@ public class EmprestimosService {
                 e.getTipoCobranca(),
                 e.getUsuarioId(),
                 fechamento != null ? fechamento.toLocalDate() : null,
-                parcelasService.calculaValorResidual(e)
+                parcelasService.calculaValorResidual(e),
+                new ArrayList<>()
         );
     }
 
     // -----------------------------------------------------------
-// ATUALIZA UM EMPRÉSTIMO EXISTENTE
-// -----------------------------------------------------------
-    public EmprestimoDTO atualizar(Long id, EmprestimoDTO dto) {
+    // ATUALIZA UM EMPRÉSTIMO EXISTENTE
+    // -----------------------------------------------------------
+    public EmprestimoDTO atualizar(UserEntity user, Long id, EmprestimoDTO dto) {
         Optional<EmprestimoEntity> emprestimoOpt = emprestimoTabelaService.findById(id);
         if (emprestimoOpt.isEmpty()) {
             return null;
@@ -331,6 +357,7 @@ public class EmprestimosService {
         // Atualiza os campos editáveis
         emprestimo.setCliente(dto.getCliente());
         emprestimo.setContato(dto.getContato());
+        emprestimo.setId(dto.getId());
         emprestimo.setValor(dto.getValor());
         emprestimo.setTipoEmprestimo(dto.getTipoEmprestimo());
         emprestimo.setTaxaJuros(dto.getTaxaJuros());
@@ -340,8 +367,19 @@ public class EmprestimosService {
 
         emprestimoTabelaService.save(emprestimo);
 
+        if (podeEditar(id)) {
+            removerParcelas(dto.getId());
+            gerarParcelas(user, emprestimo);
+        }
+
         // Retorna DTO atualizado
         return buscarParaEditar(id);
+    }
+
+    private void removerParcelas(Long id) {
+        parcelaService.findByEmprestimoId(id).forEach(parcela -> {
+            parcelaService.remove(parcela.getId());
+        });
     }
 
     public EmprestimoDTO findEmprestimo(Long id) {

@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -29,5 +30,6 @@ public class EmprestimoDTO {
     private UUID usuarioId;
     private LocalDate dataFechamento;
     private BigDecimal valorResidual;
+    private List<ParcelaDTO> parcelas;
 
 }

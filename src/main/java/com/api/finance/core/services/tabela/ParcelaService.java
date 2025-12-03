@@ -76,4 +76,13 @@ public class ParcelaService {
         return parcelaRepository.findByStatus(status);
     }
 
+
+    public boolean remove(Long id) {
+        ParcelaEntity parcela = parcelaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Parcela não encontrada com ID: " + id));
+
+        parcelaRepository.delete(parcela);
+        return true;
+    }
+
 }
