@@ -3,8 +3,10 @@ package com.api.finance.core.controllers;
 import com.api.finance.auth.domain.user.UserEntity;
 import com.api.finance.auth.domain.user.UserSecurity;
 import com.api.finance.auth.service.UserService;
+import com.api.finance.core.services.programa.EmprestimosService;
 import com.api.finance.core.services.programa.ParcelasService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -23,6 +26,8 @@ public class DashController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    EmprestimosService emprestimosService;
 
     // ----------------- Total pago hoje -----------------
     @GetMapping("/pago-hoje")
@@ -53,7 +58,7 @@ public class DashController {
         if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         Long idEmpresa = userOpt.get().getEmpresacliente();
-        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,15);
+        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa, 15);
         return ResponseEntity.ok(previsao);
     }
 
@@ -64,7 +69,7 @@ public class DashController {
         if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         Long idEmpresa = userOpt.get().getEmpresacliente();
-        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,30);
+        BigDecimal previsao = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa, 30);
         return ResponseEntity.ok(previsao);
     }
 
@@ -97,7 +102,7 @@ public class DashController {
         if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         Long idEmpresa = userOpt.get().getEmpresacliente();
-        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,7);
+        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa, 7);
         return ResponseEntity.ok(faturamento);
     }
 
@@ -108,7 +113,7 @@ public class DashController {
         if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         Long idEmpresa = userOpt.get().getEmpresacliente();
-        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa,7);
+        BigDecimal faturamento = parcelasService.getPrevisaoFaturamentoDias(LocalDate.now(), idEmpresa, 7);
         return ResponseEntity.ok(faturamento);
     }
 
@@ -133,15 +138,14 @@ public class DashController {
         LocalDate hoje = LocalDate.now();
 
 
-
         HashMap<String, Object> resumo = new HashMap<>();
         resumo.put("pagoHoje", parcelasService.getTotalPagoNoDia(hoje, idEmpresa));
         resumo.put("previsaoSemana", parcelasService.getPrevisaoSemana(hoje, idEmpresa));
-        resumo.put("previsao15Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,15));
-        resumo.put("previsao30Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa,30));
+        resumo.put("previsao15Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa, 15));
+        resumo.put("previsao30Dias", parcelasService.getPrevisaoFaturamentoDias(hoje, idEmpresa, 30));
         resumo.put("parcelasVencidas", parcelasService.getParcelasVencidasCount(hoje, idEmpresa));
         resumo.put("contratosAtivos", parcelasService.getContratosAtivosCount(idEmpresa));
-        resumo.put("faturamento7DiasPassados", parcelasService.faturadoUltimosDias(hoje, idEmpresa,7));
+        resumo.put("faturamento7DiasPassados", parcelasService.faturadoUltimosDias(hoje, idEmpresa, 7));
         resumo.put("totalAlocado", parcelasService.getTotalDinheiroAlocado(idEmpresa));
 
         return ResponseEntity.ok(resumo);
@@ -152,4 +156,33 @@ public class DashController {
         if (userSecurity == null) return Optional.empty();
         return userService.findById(userSecurity.getUser());
     }
+
+    @PostMapping("/fechamento-mensal")
+    public ResponseEntity<Map<String, String>> fechamentoMensal(@AuthenticationPrincipal UserSecurity userSecurity) {
+
+        Map<String, String> response = new HashMap<>();
+
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Optional<UserEntity> userGestorOptional = userService.findById(userSecurity.getUser());
+        if (!userGestorOptional.isPresent()) {
+            return ResponseEntity.status(404).build();
+        }
+
+        UserEntity userGestor = userGestorOptional.get();
+
+        try {
+            emprestimosService.fechamentoMensalEmpresa(userGestor, userGestor.getEmpresacliente());
+            response.put("result", "Fechamento mensal realizado com sucesso");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("error", "Erro ao realizar fechamento mensal");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+
 }

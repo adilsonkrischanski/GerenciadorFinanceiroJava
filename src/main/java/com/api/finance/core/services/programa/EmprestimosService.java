@@ -49,7 +49,14 @@ public class EmprestimosService {
         emprestimo.setTipoCobranca(TipoCobranca.fromCode(body.getTipoCobranca()).getCode());
         emprestimo.setDataFechamento(new Data().toString());
         emprestimo.setQuantidadeParcelas(body.getQuantidadeParcelas());
+        emprestimo.setTaxaJurosParcelaAtraso(body.getTaxaJurosAtrasoParcela());
         emprestimo.setVencimentoPrimeiraParcela(body.getVencimentoPrimeiraParcela().toString());
+
+        if (userGestor.isGerente()) {
+            emprestimo.setContatoCobranca(body.getContato());
+        } else {
+            emprestimo.setContatoCobranca(userGestor.getContato());
+        }
 
         emprestimoTabelaService.save(emprestimo);
         gerarParcelas(userGestor, emprestimo);
@@ -124,13 +131,16 @@ public class EmprestimosService {
             }
         } catch (Exception ignored) {}
 
+
         return new EmprestimoDTO(
                 e.getId(),
                 e.getCliente(),
                 e.getContato(),
+                e.getContatoCobranca(),
                 e.getValor(),
                 e.getTipoEmprestimo(),
                 e.getTaxaJuros(),
+                e.getTaxaJurosParcelaAtraso(),
                 e.getQuantidadeParcelas(),
                 vencimento != null ? vencimento.toLocalDate() : null,
                 e.getTipoCobranca(),
@@ -330,9 +340,11 @@ public class EmprestimosService {
                 e.getId(),
                 e.getCliente(),
                 e.getContato(),
+                e.getContatoCobranca(),
                 e.getValor(),
                 e.getTipoEmprestimo(),
                 e.getTaxaJuros(),
+                e.getTaxaJurosParcelaAtraso(),
                 e.getQuantidadeParcelas(),
                 vencimento != null ? vencimento.toLocalDate() : null,
                 e.getTipoCobranca(),
@@ -425,6 +437,56 @@ public class EmprestimosService {
                 .stream()
                 .filter(e -> emprestimosVencidosIds.contains(e.getId()))
                 .collect(Collectors.toList());
+
+
+    }
+
+    public void fechamentoMensalEmpresa(UserEntity user, long empresacliente) throws Exception {
+        List<EmprestimoEntity> emprestimos = emprestimoTabelaService.findByAtivosEmpresaId(empresacliente);
+        for (EmprestimoEntity emprestimo : emprestimos) {
+            fechaEmprestimo(user,emprestimo);
+        }
+    }
+
+    public void fechaEmprestimo(UserEntity user, EmprestimoEntity emprestimo) throws Exception {
+        ParcelaEntity nextParcela = primeiraParcelaPendente(emprestimo.getId());
+        if (parcelaVencida(nextParcela)) {
+            parcelasService.confirmarPagamento(user, geraParcelaDTOCrua(nextParcela));
+            fechaEmprestimo(user,emprestimo);
+        }
+    }
+
+    public ParcelaDTO geraParcelaDTOCrua(ParcelaEntity parcela) {
+
+        ParcelaDTO dto = new ParcelaDTO();
+        dto.setId(parcela.getId());
+        dto.setEmprestimoId(parcela.getEmprestimoId());
+        dto.setNumeroParcela(parcela.getNumeroParcela());
+        dto.setVencimento(parcela.getVencimento());
+        dto.setStatus(parcela.getStatus());
+        dto.setValorOriginal(parcela.getValorOriginal());
+        dto.setValorPago(parcela.getValorPago());
+        dto.setValorDesconto(parcela.getValorDesconto());
+        dto.setJuros(parcela.getJuros());
+        dto.setUsuarioUuid(parcela.getUsuarioUuid());
+        dto.setDataPagamento(parcela.getDataPagamento());
+        return dto;
+
+
+    }
+
+    private boolean parcelaVencida(ParcelaEntity parcela) {
+        if (parcela != null) {
+            if (new Data(parcela.getVencimento()).venceu()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ParcelaEntity primeiraParcelaPendente(Long emprestimo) {
+        ParcelaEntity parcela = parcelaService.proximaParcela(emprestimo);
+        return parcela;
 
 
     }

@@ -9,6 +9,7 @@ import com.api.finance.core.repositories.AcrescimoPorAtrasoRepository;
 import com.api.finance.core.services.sistema.CalculadoraJuros;
 import com.api.finance.core.services.sistema.Data;
 import com.api.finance.core.services.tabela.EmprestimoService;
+import com.api.finance.core.services.tabela.ParcelaService;
 import com.api.finance.core.utils.enums.StatusParcela;
 import com.api.finance.core.utils.enums.TipoCobranca;
 import com.api.finance.core.utils.enums.TipoEmprestimo;
@@ -91,15 +92,25 @@ public class ParcelasService {
             parcela.setStatus(StatusParcela.PAGA.getCode());
 
         } else {
+            Optional<EmprestimoEntity> emprestimoEntityOptional = emprestimosService.findById(parcela.getEmprestimoId());
+            EmprestimoEntity emprestimo = emprestimoEntityOptional.get();
             parcela.setStatus(StatusParcela.PAGA.getCode());
-            AcrescimoPorAtraso acrescimoPorAtraso = new AcrescimoPorAtraso();
-            acrescimoPorAtraso.setEmprestimoId(parcela.getEmprestimoId());
-            Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(parcela.getEmprestimoId());
-            Long maxId = maxIdOpt.orElse(0L);
-            acrescimoPorAtraso.setId(maxId+1);
-            acrescimoPorAtraso.setValorAtraso(parcela.getValorOriginal().subtract(parcela.getValorPago()));
-            acrescimoPorAtraso.setDataRegistro(new Data().toString());
-            acrescimoPorAtrasoRepository.save(acrescimoPorAtraso);
+
+            if (emprestimo.getDeletado().equals(TipoEmprestimo.ESPECIAL.getCode())) {
+                parcela.setStatus(StatusParcela.PAGA.getCode());
+                AcrescimoPorAtraso acrescimoPorAtraso = new AcrescimoPorAtraso();
+                acrescimoPorAtraso.setEmprestimoId(parcela.getEmprestimoId());
+                Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(parcela.getEmprestimoId());
+                Long maxId = maxIdOpt.orElse(0L);
+                acrescimoPorAtraso.setId(maxId + 1);
+                acrescimoPorAtraso.setValorAtraso(parcela.getValorOriginal().subtract(parcela.getValorPago()));
+                acrescimoPorAtraso.setDataRegistro(new Data().toString());
+                acrescimoPorAtrasoRepository.save(acrescimoPorAtraso);
+            } else {
+                gerarNovaParcelaConvencional(emprestimo, parcela.getValorOriginal().subtract(parcela.getValorPago()), parcela);
+            }
+
+
         }
 
         // Salva atualização
@@ -108,15 +119,40 @@ public class ParcelasService {
         // Gera nova parcela se aplicável
         EmprestimoEntity emprestimo = buscarEmprestimo(parcela);
         if (emprestimo != null && parcela.getStatus() == StatusParcela.PAGA.getCode()) {
-            gerarNovaParcela(user, emprestimo);
+            gerarNovaParcelaEspecial(user, emprestimo);
         }
 
         return true;
     }
 
+    private void gerarNovaParcelaConvencional(EmprestimoEntity emprestimo, BigDecimal valor, ParcelaEntity origem) {
+        ParcelaEntity novaParcela = new ParcelaEntity();
+        novaParcela.setEmprestimoId(emprestimo.getId());
+        novaParcela.setValorOriginal(calculaJuros(valor, emprestimo.getTaxaJurosParcelaAtraso()));
+        Data vencimento = new Data();
+        vencimento.somarDias(30);
+        novaParcela.setVencimento(vencimento.toString());
+        novaParcela.setNumeroParcela(buscarQuantidadeParcelas(emprestimo.getId()) + 1);
+        novaParcela.setStatus(StatusParcela.PENDENTE.getCode());
+        parcelaService.save(novaParcela);
+
+    }
+
+    private Integer buscarQuantidadeParcelas(Long id) {
+        return parcelaService.buscarPorEmprestimoId(id).size();
+    }
+
+    private BigDecimal calculaJuros(BigDecimal valor, BigDecimal taxaJurosParcelaAtraso) {
+        if (valor == null || taxaJurosParcelaAtraso == null) {
+            return valor;
+        }
+
+        BigDecimal juros = valor.multiply(taxaJurosParcelaAtraso.divide(new BigDecimal(100)));
+        return valor.add(juros);
+    }
 
 
-    private void gerarNovaParcela(UserEntity user, EmprestimoEntity emprestimo) {
+    private void gerarNovaParcelaEspecial(UserEntity user, EmprestimoEntity emprestimo) {
         List<ParcelaEntity> parcelaEntities = parcelaService.buscarPorEmprestimoId(emprestimo.getId());
         BigDecimal saldoDevedor = saldoDevedor(emprestimo);
         if (saldoDevedor.compareTo(BigDecimal.ZERO) <= 0) {

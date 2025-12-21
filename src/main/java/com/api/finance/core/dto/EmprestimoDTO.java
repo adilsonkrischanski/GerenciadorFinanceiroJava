@@ -21,9 +21,11 @@ public class EmprestimoDTO {
     private Long id;
     private String cliente;
     private String contato;
+    private String contatoCobranca;
     private BigDecimal valor;
     private Integer tipoEmprestimo;
     private BigDecimal taxaJuros;
+    private BigDecimal taxaJurosAtrasoParcela;
     private Integer quantidadeParcelas;
     private LocalDate vencimentoPrimeiraParcela;
     private Integer tipoCobranca;

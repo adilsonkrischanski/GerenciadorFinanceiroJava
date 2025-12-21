@@ -1,6 +1,7 @@
 package com.api.finance.core.services.tabela;
 
 import com.api.finance.auth.domain.user.UserEntity;
+import com.api.finance.core.domain.entity.EmprestimoEntity;
 import com.api.finance.core.domain.entity.ParcelaEntity;
 import com.api.finance.core.dto.ParcelaDTO;
 import com.api.finance.core.repositories.ParcelaRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ParcelaService {
@@ -85,4 +87,11 @@ public class ParcelaService {
         return true;
     }
 
+    public ParcelaEntity proximaParcela(Long emprestimo) {
+
+        Optional<ParcelaEntity> parcela = Optional.ofNullable(parcelaRepository.findFirstByEmprestimoIdAndStatusOrderByNumeroParcelaAsc(
+                emprestimo, StatusParcela.PENDENTE.getCode()));
+
+        return parcela.get();
+    }
 }

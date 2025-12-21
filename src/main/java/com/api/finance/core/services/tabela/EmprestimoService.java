@@ -35,7 +35,7 @@ public class EmprestimoService {
     }
 
     public List<EmprestimoEntity> findByAtivosEmpresaId(Long empresaId) {
-        return emprestimoRepository.findByEmpresaIdAndDataFechamentoIsNull(empresaId);
+        return emprestimoRepository.findByEmpresaId(empresaId);
     }
 
 
