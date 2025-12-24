@@ -94,10 +94,10 @@ public class ParcelasService {
         } else {
             Optional<EmprestimoEntity> emprestimoEntityOptional = emprestimosService.findById(parcela.getEmprestimoId());
             EmprestimoEntity emprestimo = emprestimoEntityOptional.get();
-            parcela.setStatus(StatusParcela.PAGA.getCode());
+            parcela.setStatus(StatusParcela.REALOCADO.getCode());
 
-            if (emprestimo.getDeletado().equals(TipoEmprestimo.ESPECIAL.getCode())) {
-                parcela.setStatus(StatusParcela.PAGA.getCode());
+            if (emprestimo.getTipoEmprestimo() == (TipoEmprestimo.ESPECIAL.getCode())) {
+                parcela.setStatus(StatusParcela.REALOCADO.getCode());
                 AcrescimoPorAtraso acrescimoPorAtraso = new AcrescimoPorAtraso();
                 acrescimoPorAtraso.setEmprestimoId(parcela.getEmprestimoId());
                 Optional<Long> maxIdOpt = acrescimoPorAtrasoRepository.findMaxIdByEmprestimoId(parcela.getEmprestimoId());
@@ -118,7 +118,7 @@ public class ParcelasService {
 
         // Gera nova parcela se aplicável
         EmprestimoEntity emprestimo = buscarEmprestimo(parcela);
-        if (emprestimo != null && parcela.getStatus() == StatusParcela.PAGA.getCode()) {
+        if (emprestimo != null && (parcela.getStatus() == StatusParcela.PAGA.getCode() ||  parcela.getStatus() == StatusParcela.REALOCADO.getCode())) {
             gerarNovaParcelaEspecial(user, emprestimo);
         }
 
