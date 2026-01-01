@@ -46,7 +46,8 @@ public class UserEntity implements Serializable {
 
     @Column(nullable = false)
     private boolean isGerente;
-
+    @Column
+    private String contato;
 
     @Column(name = "registration_date")
     private LocalDateTime registrationDate;

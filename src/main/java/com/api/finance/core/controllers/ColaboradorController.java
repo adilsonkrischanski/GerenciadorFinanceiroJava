@@ -67,6 +67,7 @@ public class ColaboradorController {
             newUser.setRegistrationDate(LocalDateTime.now());
             newUser.setEmpresacliente(userGestor.getEmpresacliente());
             newUser.setActive(true);
+            newUser.setContato(body.contato());
             newUser.setDeactivationDate(null);
             userService.save(newUser);
             Map<String, String> response = new HashMap<>();

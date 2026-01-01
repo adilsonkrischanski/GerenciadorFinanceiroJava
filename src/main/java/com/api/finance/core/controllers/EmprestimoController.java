@@ -208,6 +208,7 @@ public class EmprestimoController {
     @GetMapping("/editar/{id}")
     public ResponseEntity<EmprestimoDTO> buscarParaEditar(@AuthenticationPrincipal UserSecurity userSecurity,
                                                           @PathVariable Long id) {
+
         EmprestimoDTO dto = emprestimoService.buscarParaEditar(id);
         if (dto == null) {
             return ResponseEntity.notFound().build();
@@ -220,12 +221,15 @@ public class EmprestimoController {
     public ResponseEntity<EmprestimoDTO> atualizar(@AuthenticationPrincipal UserSecurity userSecurity,
                                                    @PathVariable Long id, @RequestBody EmprestimoDTO dto) {
 
-        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(new EmprestimoDTO());
+        if (userSecurity == null) {
+            return null; // ou ResponseEntity.status(401).build()
         }
+        userSecurity.getUser();
 
-        EmprestimoDTO atualizado = emprestimoService.atualizar(id, dto);
+        Optional<UserEntity> userGestorOptional = userService.findById(userSecurity.getUser());
+
+        UserEntity userGestor = userGestorOptional.get();
+        EmprestimoDTO atualizado = emprestimoService.atualizar(userGestor, id, dto);
         if (atualizado == null) {
             return ResponseEntity.notFound().build();
         }

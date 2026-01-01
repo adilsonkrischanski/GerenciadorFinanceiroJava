@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.api</groupId>
-	<artifactId>traveling</artifactId>
+	<artifactId>gerenciador-financeiro</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>traveling-api</name>
-	<description>Traveling API</description>
+	<name>financeiro-api</name>
+	<description>financeiro API</description>
 	<url/>
 	<licenses>
 		<license/>

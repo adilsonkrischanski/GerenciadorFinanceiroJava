@@ -81,4 +81,56 @@ public class Data {
 
         return novaData.toString();
     }
+
+    // ----------------------------
+// Comparações entre datas
+// ----------------------------
+
+    public boolean maiorQue(Data outraData) {
+        if (outraData == null) {
+            return true;
+        }
+        return this.data.isAfter(outraData.data);
+    }
+
+    public boolean menorQue(Data outraData) {
+        if (outraData == null) {
+            return false;
+        }
+        return this.data.isBefore(outraData.data);
+    }
+
+    public boolean igual(Data outraData) {
+        if (outraData == null) {
+            return false;
+        }
+        return this.data.isEqual(outraData.data);
+    }
+
+// ----------------------------
+// Comparações com a data atual
+// ----------------------------
+
+    /**
+     * Retorna true se a data já venceu (antes de hoje)
+     */
+    public boolean venceu() {
+        return this.data.isBefore(LocalDate.now());
+    }
+
+    /**
+     * Retorna true se a data for hoje
+     */
+    public boolean venceHoje() {
+        return this.data.isEqual(LocalDate.now());
+    }
+
+    /**
+     * Retorna true se a data ainda não venceu (hoje ou futura)
+     */
+    public boolean naoVenceu() {
+        return !venceu();
+    }
+
+
 }
