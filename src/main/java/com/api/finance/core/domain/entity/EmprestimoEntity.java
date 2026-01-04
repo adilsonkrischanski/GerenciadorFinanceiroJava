@@ -26,6 +26,8 @@ public class EmprestimoEntity {
 
     @Column
     private String contato;
+    @Column
+    private String contatoCobranca;
 
     @Column(precision = 15, scale = 2)
     private BigDecimal valor;
@@ -35,6 +37,9 @@ public class EmprestimoEntity {
 
     @Column(precision = 5, scale = 2)
     private BigDecimal taxaJuros;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal taxaJurosParcelaAtraso;
 
     @Column
     private Integer quantidadeParcelas;

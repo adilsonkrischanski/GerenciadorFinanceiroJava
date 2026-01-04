@@ -1,5 +1,6 @@
 package com.api.finance.core.repositories;
 
+import com.api.finance.core.domain.entity.EmprestimoEntity;
 import com.api.finance.core.domain.entity.ParcelaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,8 @@ public interface ParcelaRepository extends JpaRepository<ParcelaEntity, Long> {
 
     boolean existsByEmprestimoIdAndStatus(Long emprestimoId, int status);
 
+    ParcelaEntity findFirstByEmprestimoIdAndStatusOrderByNumeroParcelaAsc(
+            Long emprestimoId,
+            int status
+    );
 }
