@@ -2,6 +2,7 @@ package com.api.finance.auth.service;
 
 import com.api.finance.auth.domain.user.EmpresaClienteSequence;
 import com.api.finance.auth.domain.user.UserEntity;
+import com.api.finance.auth.dto.AlterarSenhaDTO;
 import com.api.finance.auth.dto.LoginDTO;
 import com.api.finance.auth.dto.ReveryPasswordDTO;
 import com.api.finance.auth.repositories.UserRepository;
@@ -122,6 +123,18 @@ public class UserService {
         return true;
     }
 
+    public void resetPassWord(UserEntity user, AlterarSenhaDTO alterarSenhaDTO){
+        String encodedPassword = passwordEncoder.encode(alterarSenhaDTO.getNovaSenha());
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    public void resetPassWordPadrao(UserEntity user){
+        String encodedPassword = passwordEncoder.encode(user.getEmail());
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+    }
+
     public void resetPassWord(ReveryPasswordDTO reveryPasswordDTO){
         UserEntity user = userRepository.findByEmail(reveryPasswordDTO.email())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -148,4 +161,18 @@ public class UserService {
     public List<UserEntity> findAllByEmpresa(long empresacliente) {
         return userRepository.findAllByEmpresacliente(empresacliente);
     }
+
+    public boolean ativarColaborador(UUID id) {
+        Optional<UserEntity> opt = userRepository.findById(id);
+        if (opt.isPresent()) {
+            UserEntity user = opt.get();
+            user.setDeactivationDate(null);
+            user.setActive(true);
+            user.setPassword(passwordEncoder.encode(user.getEmail()));
+            userRepository.save(user);
+            return true;
+        }
+        return false;
+    }
+
 }

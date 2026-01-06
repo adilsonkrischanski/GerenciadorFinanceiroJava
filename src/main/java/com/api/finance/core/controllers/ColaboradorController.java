@@ -139,4 +139,13 @@ public class ColaboradorController {
         response.put("result", "Usuário desativado com sucesso.");
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("ativar/{id}")
+    public ResponseEntity<Map<String, Object>> ativarColaborador(@PathVariable UUID id) {
+        boolean sucesso = userService.ativarColaborador(id);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", sucesso);
+        resp.put("message", sucesso ? "Usuário ativado com sucesso" : "Erro ao ativar usuário");
+        return ResponseEntity.ok(resp);
+    }
 }

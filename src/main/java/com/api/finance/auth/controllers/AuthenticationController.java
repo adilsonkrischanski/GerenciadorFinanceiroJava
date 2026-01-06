@@ -1,6 +1,8 @@
 package com.api.finance.auth.controllers;
 
 import com.api.finance.auth.domain.user.UserEntity;
+import com.api.finance.auth.domain.user.UserSecurity;
+import com.api.finance.auth.dto.AlterarSenhaDTO;
 import com.api.finance.auth.dto.LoginDTO;
 import com.api.finance.auth.dto.RegisterDTO;
 import com.api.finance.auth.dto.ReveryPasswordDTO;
@@ -72,12 +74,38 @@ public class AuthenticationController {
         return generateToken(body);
     }
 
+    @PostMapping("/alterar-senha")
+    public ResponseEntity<?> alterarSenha(@AuthenticationPrincipal UserSecurity userSecurity, @RequestBody AlterarSenhaDTO dto) throws Exception {
+
+        if (userSecurity == null) {
+            return null; // ou ResponseEntity.status(401).build()
+        }
+        userSecurity.getUser();
+
+        Optional<UserEntity> userGestorOptional = userService.findById(userSecurity.getUser());
+        if (userGestorOptional.isEmpty()) {
+            throw new Exception("Voce precisar estar logado como administrador para cadastrar um funcionario");
+        }
+        UserEntity userGestor = userGestorOptional.get();  if (userSecurity == null) {
+            return null; // ou ResponseEntity.status(401).build()
+        }
+        userSecurity.getUser();
+
+        userService.resetPassWord(userGestor, dto);
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", true);
+        body.put("message", "Senha alterada com sucesso");
+
+        return ResponseEntity.ok(body);
+    }
+
     @PostMapping("/reset-password-send-mail")
     public ResponseEntity<Map<String, Boolean>> resetPasswordSendMail(@RequestBody LoginDTO body) {
         Map<String, Boolean> response = new HashMap<>();
         response.put("result", userService.sendCodeResetPassword(body.email()));
         return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/confirm-reset-password")
     public ResponseEntity<Map<String, Boolean>> confirmCodeResetPassWord(@RequestBody ReveryPasswordDTO body) {
