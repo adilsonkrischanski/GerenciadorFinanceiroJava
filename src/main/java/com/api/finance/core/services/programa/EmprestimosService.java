@@ -49,7 +49,13 @@ public class EmprestimosService {
         emprestimo.setTipoCobranca(TipoCobranca.fromCode(body.getTipoCobranca()).getCode());
         emprestimo.setDataFechamento(new Data().toString());
         emprestimo.setQuantidadeParcelas(body.getQuantidadeParcelas());
-        emprestimo.setTaxaJurosParcelaAtraso(body.getTaxaJurosAtrasoParcela());
+        if (body.getTaxaJurosAtrasoParcela() != null
+                && body.getTaxaJurosAtrasoParcela().compareTo(BigDecimal.ZERO) > 0) {
+            emprestimo.setTaxaJurosParcelaAtraso(body.getTaxaJurosAtrasoParcela());
+        }else{
+            emprestimo.setTaxaJurosParcelaAtraso(BigDecimal.ZERO);
+
+        }
         emprestimo.setVencimentoPrimeiraParcela(body.getVencimentoPrimeiraParcela().toString());
 
         if (userGestor.isGerente()) {
