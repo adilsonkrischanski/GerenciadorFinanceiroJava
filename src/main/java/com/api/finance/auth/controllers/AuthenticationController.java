@@ -118,10 +118,12 @@ public class AuthenticationController {
         String jwtToken = userService.verify(body);
         Boolean gerente= userService.verificaSeGerente(body.email());
         Boolean adm= userService.verificaSeAdministrador(body.email());
+        String uuid= userService.buscaId(body.email());
         Map<String, String> response = new HashMap<>();
         response.put("token", jwtToken);
         response.put("gerente", gerente.toString());
         response.put("adm", adm.toString());
+        response.put("id", uuid);
         return ResponseEntity.ok(response);
     }
 

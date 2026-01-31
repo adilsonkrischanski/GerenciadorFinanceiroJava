@@ -175,4 +175,17 @@ public class UserService {
         return false;
     }
 
+    public String buscaId(String email) {
+        try {
+            Optional<UserEntity> userEntityOptional = userRepository.findByEmail(email);
+            if(userEntityOptional.isPresent()) {
+                UserEntity user = userEntityOptional.get();
+                return user.getId().toString();
+            }
+            return "";
+        }catch (Exception e){
+            return "";
+        }
+
+    }
 }

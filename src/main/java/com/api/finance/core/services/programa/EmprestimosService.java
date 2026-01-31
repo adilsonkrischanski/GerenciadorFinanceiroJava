@@ -42,9 +42,13 @@ public class EmprestimosService {
         emprestimo.setCliente(body.getCliente());
         emprestimo.setContato(body.getContato());
         emprestimo.setValor(body.getValor());
-        emprestimo.setUsuarioId(userGestor.getId());
         emprestimo.setTaxaJuros(body.getTaxaJuros());
         emprestimo.setTipoEmprestimo(TipoEmprestimo.fromCode(body.getTipoEmprestimo()).getCode());
+        if(body.getUsuarioId() ==null){
+            emprestimo.setUsuarioId(userGestor.getId());
+        }else{
+            emprestimo.setUsuarioId(body.getUsuarioId());
+        }
         emprestimo.setEmpresaId(userGestor.getEmpresacliente());
         emprestimo.setTipoCobranca(TipoCobranca.fromCode(body.getTipoCobranca()).getCode());
         emprestimo.setDataFechamento(new Data().toString());

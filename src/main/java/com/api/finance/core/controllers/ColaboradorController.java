@@ -103,6 +103,7 @@ public class ColaboradorController {
                     map.put("id", u.getId());
                     map.put("email", u.getEmail());
                     map.put("ativo", u.isActive());
+                    map.put("nome", u.getUsername());
                     return map;
                 })
                 .collect(Collectors.toList());
