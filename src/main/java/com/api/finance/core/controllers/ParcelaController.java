@@ -149,5 +149,71 @@ public class ParcelaController {
         }
     }
 
+    @PostMapping("/agregar")
+    public ResponseEntity<Map<String, Object>> criarParcelaAgregadora(
+            @AuthenticationPrincipal UserSecurity userSecurity,
+            @RequestBody Map<String, Object> payload) {
+
+        // =============================
+        // Autenticação
+        // =============================
+        if (userSecurity == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Usuário não autenticado."
+            ));
+        }
+
+        Optional<UserEntity> userOpt = userService.findById(userSecurity.getUser());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Usuário não encontrado"
+            ));
+        }
+
+        // =============================
+        // Payload
+        // =============================
+        Long idEmprestimo = ((Number) payload.get("idEmprestimo")).longValue();
+        Double valorDouble = ((Number) payload.get("valor")).doubleValue();
+
+        BigDecimal valor = BigDecimal.valueOf(valorDouble);
+
+        // força negativo por segurança (regra de negócio)
+        if (valor.compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "O valor do agregador deve ser positivo."
+            ));
+        }
+
+
+        // =============================
+        // Execução
+        // =============================
+        try {
+            parcelaService.criarParcelaAgregadora(
+                    userOpt.get(),
+                    idEmprestimo,
+                    valor
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "OK",
+                    "mensagem", "Valor agregado ao empréstimo com sucesso!"
+            ));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return ResponseEntity.status(400).body(Map.of(
+                    "status", "ERRO",
+                    "mensagem", "Erro ao agregar valor: " + e.getMessage()
+            ));
+        }
+    }
+
+
 
 }

@@ -210,7 +210,7 @@ public class ParcelasService {
             }
 
             // Somar parcelas PENDENTES
-            if (parcela.getStatus() == StatusParcela.PENDENTE.getCode()) {
+            if (parcela.getStatus() == StatusParcela.PENDENTE.getCode() || parcela.getStatus() == StatusParcela.AGREGADO.getCode()) {
                 valorPendentes = valorPendentes.add(totalparc);
             }
         }
@@ -400,5 +400,37 @@ public class ParcelasService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
         return total;
     }
+
+    public void criarParcelaAgregadora(UserEntity userEntity, Long idEmprestimo, BigDecimal valorNegativo) throws Exception {
+
+            EmprestimoEntity emprestimo = emprestimosService.findById(idEmprestimo)
+                    .orElseThrow(() -> new Exception("Empréstimo não encontrado"));
+
+            List<ParcelaEntity> parcelas = parcelaService.findByEmprestimoId(emprestimo.getId());
+            for(ParcelaEntity parcelaBase: parcelas){
+                if(parcelaBase.getStatus()==StatusParcela.PENDENTE.getCode()){
+                    parcelaBase.setValorDesconto(parcelaBase.getValorOriginal());
+                    parcelaBase.setStatus(StatusParcela.LIQUIDADO.getCode());
+                    parcelaService.save(parcelaBase);
+                }
+            }
+
+            // Criar nova parcela
+            ParcelaEntity parcela = new ParcelaEntity();
+            parcela.setNumeroParcela(parcelas.size()+1);
+            parcela.setEmprestimoId(emprestimo.getId());
+            parcela.setValorOriginal(valorNegativo);
+            parcela.setValorPago(BigDecimal.ZERO);
+            parcela.setStatus(StatusParcela.AGREGADO.getCode());
+            parcela.setVencimento(new Data().toString());
+            parcela.setDataPagamento(new Data().toString());
+            parcela.setUsuarioUuid(userEntity.getId());
+            parcela.setParcelaAdicional(false);
+
+            // Salvar
+            parcelaService.save(parcela);
+            gerarNovaParcelaEspecial(userEntity,emprestimo);
+    }
+
 }
 
