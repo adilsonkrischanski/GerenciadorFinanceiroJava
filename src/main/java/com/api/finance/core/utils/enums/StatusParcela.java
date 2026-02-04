@@ -5,7 +5,8 @@ public enum StatusParcela {
     PENDENTE(1, "Pendente"),
     PAGA(2, "Paga"),
     LIQUIDADO(3, "Liquidado"),
-    REALOCADO(4, "Realocada");
+    REALOCADO(4, "Realocada"),
+    AGREGADO(5, "Agregado");
 
     private final int code;
     private final String descricao;
